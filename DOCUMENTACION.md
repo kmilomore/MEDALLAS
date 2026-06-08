@@ -53,6 +53,7 @@ MEDALLAS/
 │       ├── AdminDashboard.tsx       # Panel administrativo ("/admin")
 │       ├── AdminUsersModal.tsx      # Modal: gestión de usuarios administradores
 │       ├── FormPreviewModal.tsx     # Modal: vista previa de solo lectura del formulario
+│       ├── WelcomeBanner.tsx        # Banner de bienvenida (nombre + correo de la persona autenticada)
 │       ├── EstablishmentInfo.tsx    # Tarjeta con datos del establecimiento
 │       ├── RecognitionForm.tsx      # Formulario de solicitud (lista de reconocimientos)
 │       ├── RecognitionItem.tsx      # Bloque de un reconocimiento individual
@@ -177,6 +178,21 @@ tiene un **código único** (ej. `PME-GP-01`).
   - `AdminDashboard`/`FiltersPanel` derivan sus opciones de filtro de Dimensión y
     Subdimensión (también encadenadas) a partir de los datos reales recibidos
     (`detailsByRequest`, vía `useMemo`), con el mismo patrón que ya usaba `comunas`.
+
+### 3.6 Banner de bienvenida
+
+[WelcomeBanner.tsx](src/components/WelcomeBanner.tsx) es una tarjeta que se muestra
+al inicio del contenido principal tanto en [DirectorPortal.tsx](src/components/DirectorPortal.tsx)
+como en [AdminDashboard.tsx](src/components/AdminDashboard.tsx) (justo encima de
+`EstablishmentInfo` y del encabezado del panel admin, respectivamente). Saluda a la
+persona autenticada mostrando su **nombre completo** (`auth.name`, tomado del claim
+`name` del JWT de Google) y su **correo** (`auth.email`), junto a un avatar circular
+con sus iniciales.
+
+> El nombre puede venir `null` si la cuenta de Google no entrega ese dato — en ese
+> caso el banner muestra solo el correo (mismo criterio de *fallback* que ya usaba
+> `AdminAccountNotice`: `{name ? ... : ...}`), y las iniciales del avatar se calculan
+> a partir del correo.
 
 ---
 
