@@ -25,6 +25,7 @@ import { formatNumber } from '../utils/formatters'
 import { useAuth } from '../context/AuthContext'
 import AlertMessage from './AlertMessage'
 import FiltersPanel, { EMPTY_FILTERS, type RequestFilters } from './FiltersPanel'
+import AdminUsersModal from './AdminUsersModal'
 import FormPreviewModal from './FormPreviewModal'
 import KpiCard from './KpiCard'
 import LoadingSpinner from './LoadingSpinner'
@@ -45,6 +46,7 @@ export default function AdminDashboard() {
   const [updatingRequestId, setUpdatingRequestId] = useState<string | null>(null)
   const [filters, setFilters] = useState<RequestFilters>(EMPTY_FILTERS)
   const [previewOpen, setPreviewOpen] = useState(false)
+  const [usersOpen, setUsersOpen] = useState(false)
 
   useEffect(() => {
     if (auth.status === 'authenticated' && auth.role === 'admin') {
@@ -197,6 +199,13 @@ export default function AdminDashboard() {
         <div className="flex items-center gap-4">
           <button
             type="button"
+            onClick={() => setUsersOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg border border-navy-500 bg-white px-4 py-2 text-xs font-extrabold text-navy-500 transition hover:bg-navy-50"
+          >
+            Usuarios administradores
+          </button>
+          <button
+            type="button"
             onClick={() => setPreviewOpen(true)}
             className="inline-flex items-center gap-2 rounded-lg border border-navy-500 bg-white px-4 py-2 text-xs font-extrabold text-navy-500 transition hover:bg-navy-50"
           >
@@ -217,6 +226,7 @@ export default function AdminDashboard() {
       </header>
 
       {previewOpen && <FormPreviewModal onClose={() => setPreviewOpen(false)} />}
+      {usersOpen && <AdminUsersModal onClose={() => setUsersOpen(false)} />}
 
       {errorMessage && <AlertMessage tone="error" title="Ocurrió un problema">{errorMessage}</AlertMessage>}
 

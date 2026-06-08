@@ -93,3 +93,23 @@ export async function getDashboardStats(): Promise<GasResponse<{ stats: Dashboar
     action: 'getDashboardStats',
   })
 }
+
+export async function getAdmins(): Promise<GasResponse<{ admins: Establishment[] }>> {
+  return callGasApi<GasResponse<{ admins: Establishment[] }>>({
+    action: 'getAdmins',
+  })
+}
+
+export async function createAdmin(admin: Record<string, string>): Promise<GasResponse> {
+  return callGasApi<GasResponse>({
+    action: 'createAdmin',
+    admin,
+  })
+}
+
+export async function deleteAdmin(email: string): Promise<GasResponse> {
+  return callGasApi<GasResponse>({
+    action: 'deleteAdmin',
+    email,
+  })
+}

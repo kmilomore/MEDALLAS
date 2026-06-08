@@ -28,9 +28,9 @@ export default function FormPreviewModal({ onClose }: FormPreviewModalProps) {
   }, [onClose])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-navy-900/60 px-4 py-8 backdrop-blur-sm sm:items-center">
-      <div className="w-full max-w-3xl rounded-2xl border border-neutral-200 bg-neutral-100 shadow-xl">
-        <div className="flex items-center justify-between gap-4 rounded-t-2xl border-b border-neutral-200 bg-white px-6 py-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy-900/60 px-4 py-8 backdrop-blur-sm">
+      <div className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-100 shadow-xl">
+        <div className="flex shrink-0 items-center justify-between gap-4 border-b border-neutral-200 bg-white px-6 py-4">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-royal-500">Vista previa · solo lectura</p>
             <h2 className="text-lg font-extrabold tracking-tight text-navy-500">Formulario de directoras y directores</h2>
@@ -47,13 +47,13 @@ export default function FormPreviewModal({ onClose }: FormPreviewModalProps) {
           </button>
         </div>
 
-        <div className="flex flex-col gap-4 p-5 sm:p-6">
+        <div className="flex flex-col gap-4 overflow-y-auto p-5 sm:p-6">
           <p className="rounded-xl border border-royal-500/25 bg-royal-50 px-4 py-3 text-xs font-medium leading-relaxed text-royal-700">
             Esta es una vista de referencia con datos de ejemplo: así es como las directoras y directores ven el
             formulario al ingresar al portal. Los campos están deshabilitados y no se puede enviar desde aquí.
           </p>
 
-          <fieldset disabled className="contents">
+          <div className="pointer-events-none flex select-none flex-col gap-4" aria-hidden="true">
             <EstablishmentInfo establishment={SAMPLE_ESTABLISHMENT} />
             <RecognitionForm
               items={[PREVIEW_ITEM]}
@@ -63,7 +63,7 @@ export default function FormPreviewModal({ onClose }: FormPreviewModalProps) {
               onSubmit={() => {}}
               errorMessage={null}
             />
-          </fieldset>
+          </div>
         </div>
       </div>
     </div>
