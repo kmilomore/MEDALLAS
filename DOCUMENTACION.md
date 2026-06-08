@@ -44,7 +44,8 @@ MEDALLAS/
 │   │   ├── googleAuth.ts        # Flujo OAuth de redirección (sin popups)
 │   │   ├── validators.ts        # Validación del formulario de reconocimientos
 │   │   ├── formatters.ts        # Formateo de fechas, números, campos de establecimiento
-│   │   └── csvExport.ts         # Generación y descarga del CSV consolidado
+│   │   ├── csvExport.ts         # Generación y descarga del CSV consolidado
+│   │   └── audit.ts             # Helper logEvent: registro de eventos de auditoría (fire-and-forget)
 │   ├── types/
 │   │   └── index.ts             # Tipos compartidos (Establishment, RecognitionItem, etc.)
 │   └── components/
@@ -60,6 +61,7 @@ MEDALLAS/
 │       ├── RequestSummary.tsx       # Resumen previo al envío de la solicitud
 │       ├── RequestsTable.tsx        # Tabla de solicitudes recibidas (panel admin)
 │       ├── FiltersPanel.tsx         # Filtros de la tabla de solicitudes
+│       ├── AuditLogView.tsx         # Vista de auditoría (panel admin): quién ingresó y qué hizo
 │       ├── KpiCard.tsx              # Tarjeta de indicador numérico
 │       ├── AlertMessage.tsx         # Componente de alerta (success/error/info/warning)
 │       └── LoadingSpinner.tsx       # Spinner de carga

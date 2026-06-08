@@ -3,6 +3,8 @@ import type { ReactNode } from 'react'
 import { jwtDecode } from 'jwt-decode'
 import { validateUserAccess } from '../services/gasApi'
 import { consumeGoogleRedirectCredential, startGoogleSignIn } from '../utils/googleAuth'
+import { logEvent } from '../utils/audit'
+import { getEstablishmentName, getEstablishmentValue } from '../utils/formatters'
 import type { Establishment, UserRole } from '../types'
 
 type GoogleIdTokenPayload = {
@@ -117,6 +119,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           adminProfile: null,
           message: null,
         })
+        logEvent(
+          { email, name: payload.name ?? null, role: 'director' },
+          'Inicio de sesión',
+          getEstablishmentName(res.establishment),
+        )
         return
       }
 
@@ -131,6 +138,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           adminProfile: res.admin,
           message: null,
         })
+        logEvent(
+          { email, name: payload.name ?? null, role: 'admin' },
+          'Inicio de sesión',
+          getEstablishmentValue(res.admin, ['CARGO']),
+        )
         return
       }
 

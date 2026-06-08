@@ -1,4 +1,5 @@
 import type {
+  AuditEvent,
   CreateRequestResponse,
   DashboardStats,
   Establishment,
@@ -98,6 +99,31 @@ export async function getDashboardStats(): Promise<GasResponse<{ stats: Dashboar
 export async function getPmeOptions(): Promise<GasResponse<{ opciones: PmeOption[] }>> {
   return callGasApi<GasResponse<{ opciones: PmeOption[] }>>({
     action: 'getPmeOptions',
+  })
+}
+
+/**
+ * Registra un evento en el historial de auditoría (hoja "Auditoria"):
+ * quién realizó la acción, a qué hora (calculada en el servidor) y qué hizo.
+ * Pensada para llamarse de forma "fire-and-forget" — un fallo aquí no debe
+ * interrumpir el flujo principal del usuario.
+ */
+export async function registrarEvento(evento: {
+  email: string
+  nombre: string | null
+  rol: string
+  accion: string
+  detalle?: string
+}): Promise<GasResponse> {
+  return callGasApi<GasResponse>({
+    action: 'registrarEvento',
+    evento,
+  })
+}
+
+export async function getAuditoria(): Promise<GasResponse<{ eventos: AuditEvent[] }>> {
+  return callGasApi<GasResponse<{ eventos: AuditEvent[] }>>({
+    action: 'getAuditoria',
   })
 }
 

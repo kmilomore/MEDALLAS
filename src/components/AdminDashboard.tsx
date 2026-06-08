@@ -22,10 +22,12 @@ import {
 import type { AdminRequest, DashboardStats, RequestDetail } from '../types'
 import { buildConsolidatedCsv, downloadCsv, type ConsolidatedRow } from '../utils/csvExport'
 import { formatNumber } from '../utils/formatters'
+import { logEvent } from '../utils/audit'
 import { useAuth } from '../context/AuthContext'
 import AlertMessage from './AlertMessage'
 import FiltersPanel, { EMPTY_FILTERS, type RequestFilters } from './FiltersPanel'
 import AdminUsersModal from './AdminUsersModal'
+import AuditLogView from './AuditLogView'
 import FormPreviewModal from './FormPreviewModal'
 import KpiCard from './KpiCard'
 import LoadingSpinner from './LoadingSpinner'
@@ -35,9 +37,33 @@ import WelcomeBanner from './WelcomeBanner'
 
 const CHART_COLORS = ['#006BB9', '#25306B', '#FF1D3D', '#56A6DE', '#1F8A5B', '#8A5400', '#7B85B6', '#94081B']
 
+type AdminSection = 'resumen' | 'solicitudes' | 'auditoria'
+
+const NAV_ITEMS: { id: AdminSection; label: string }[] = [
+  { id: 'resumen', label: 'Resumen' },
+  { id: 'solicitudes', label: 'Solicitudes' },
+  { id: 'auditoria', label: 'Auditoría' },
+]
+
+const SECTION_COPY: Record<AdminSection, { title: string; subtitle: string }> = {
+  resumen: {
+    title: 'Resumen general',
+    subtitle: 'Indicadores, gráficos y tablas consolidadas del levantamiento territorial de necesidades',
+  },
+  solicitudes: {
+    title: 'Solicitudes recibidas',
+    subtitle: 'Filtra, revisa y actualiza el estado de cada solicitud enviada por los establecimientos',
+  },
+  auditoria: {
+    title: 'Auditoría',
+    subtitle: 'Quién ingresó al sistema, a qué hora y qué acciones realizó en la plataforma',
+  },
+}
+
 export default function AdminDashboard() {
   const { auth, beginGoogleSignIn, signOut } = useAuth()
 
+  const [activeSection, setActiveSection] = useState<AdminSection>('resumen')
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [requests, setRequests] = useState<AdminRequest[]>([])
   const [detailsByRequest, setDetailsByRequest] = useState<Record<string, RequestDetail[]>>({})
@@ -99,8 +125,14 @@ export default function AdminDashboard() {
     try {
       const res = await updateRequestStatus(requestId, status)
       if (!res.success) throw new Error(res.message || 'No fue posible actualizar el estado.')
+      const previousStatus = requests.find((request) => request.id_solicitud === requestId)?.estado_revision
       setRequests((prev) =>
         prev.map((request) => (request.id_solicitud === requestId ? { ...request, estado_revision: status } : request)),
+      )
+      logEvent(
+        { email: auth.email, name: auth.name, role: 'admin' },
+        'Cambió el estado de una solicitud',
+        `${requestId}: ${previousStatus ?? '—'} → ${status}`,
       )
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'No fue posible actualizar el estado de la solicitud.')
@@ -200,175 +232,234 @@ export default function AdminDashboard() {
     return <NotAuthorizedScreen email={auth.email} onSignOut={signOut} />
   }
 
-  return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
-      <WelcomeBanner name={auth.name} email={auth.email} />
+  const sectionTitle = SECTION_COPY[activeSection]
 
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex flex-col gap-1">
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-royal-500">Panel administrativo</p>
-          <h1 className="text-2xl font-extrabold tracking-tight text-navy-500 sm:text-3xl">
-            Levantamiento de Necesidades de Reconocimientos
-          </h1>
-          <p className="text-sm font-medium text-neutral-500">
-            Servicio Local de Educación Pública Colchagua · consolidado territorial de solicitudes
-          </p>
+  return (
+    <div className="flex min-h-[100svh] w-full bg-neutral-100">
+      <aside className="hidden w-60 shrink-0 flex-col gap-6 border-r border-neutral-200 bg-white px-4 py-6 lg:sticky lg:top-0 lg:flex lg:h-[100svh]">
+        <div className="flex items-center gap-2 px-2">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-navy-500 text-xs font-extrabold text-white">
+            SLEP
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-extrabold leading-tight text-navy-500">Panel administrativo</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-royal-500">SLEP Colchagua</p>
+          </div>
         </div>
-        <div className="flex items-center gap-4">
-          <button
-            type="button"
-            onClick={() => setUsersOpen(true)}
-            className="inline-flex items-center gap-2 rounded-lg border border-navy-500 bg-white px-4 py-2 text-xs font-extrabold text-navy-500 transition hover:bg-navy-50"
+
+        <nav className="flex flex-col gap-1">
+          {NAV_ITEMS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setActiveSection(item.id)}
+              className={`rounded-lg px-3 py-2 text-left text-sm font-bold transition ${
+                activeSection === item.id
+                  ? 'bg-royal-50 text-royal-700'
+                  : 'text-neutral-500 hover:bg-neutral-50 hover:text-navy-500'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="mt-auto flex flex-col gap-1 border-t border-neutral-200 pt-4">
+          <Link
+            to="/"
+            className="rounded-lg px-3 py-2 text-left text-xs font-bold text-neutral-500 transition hover:bg-neutral-50 hover:text-royal-500"
           >
-            Usuarios administradores
-          </button>
-          <button
-            type="button"
-            onClick={() => setPreviewOpen(true)}
-            className="inline-flex items-center gap-2 rounded-lg border border-navy-500 bg-white px-4 py-2 text-xs font-extrabold text-navy-500 transition hover:bg-navy-50"
-          >
-            Ver formulario de directores
-          </button>
-          <Link to="/" className="text-xs font-bold text-neutral-400 transition hover:text-royal-500">
             Portal de directores
           </Link>
           <button
             type="button"
             onClick={signOut}
-            className="text-xs font-bold text-neutral-400 transition hover:text-coral-600"
             title={auth.email}
+            className="rounded-lg px-3 py-2 text-left text-xs font-bold text-neutral-500 transition hover:bg-coral-50 hover:text-coral-600"
           >
             Cerrar sesión
           </button>
         </div>
-      </header>
+      </aside>
 
-      {previewOpen && <FormPreviewModal onClose={() => setPreviewOpen(false)} />}
-      {usersOpen && <AdminUsersModal onClose={() => setUsersOpen(false)} />}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <nav className="flex gap-2 overflow-x-auto border-b border-neutral-200 bg-white px-4 py-3 lg:hidden">
+          {NAV_ITEMS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setActiveSection(item.id)}
+              className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-bold transition ${
+                activeSection === item.id ? 'bg-royal-500 text-white' : 'bg-neutral-100 text-neutral-500'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
 
-      {errorMessage && <AlertMessage tone="error" title="Ocurrió un problema">{errorMessage}</AlertMessage>}
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
+          <WelcomeBanner name={auth.name} email={auth.email} />
 
-      {loading ? (
-        <LoadingSpinner label="Cargando indicadores y solicitudes…" />
-      ) : (
-        <>
-          {stats && (
-            <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-              <KpiCard label="Establecimientos" value={formatNumber(stats.totalEstablecimientos)} tone="navy" />
-              <KpiCard label="Respondieron" value={formatNumber(stats.establecimientosQueRespondieron)} tone="royal" />
-              <KpiCard label="Pendientes" value={formatNumber(stats.establecimientosPendientes)} tone="coral" />
-              <KpiCard label="% de avance" value={`${stats.porcentajeAvance}%`} tone="navy" />
-              <KpiCard label="Reconocimientos solicitados" value={formatNumber(stats.totalReconocimientos)} tone="royal" />
-              <KpiCard label="Solicitudes recibidas" value={formatNumber(requests.length)} tone="navy" />
-              <KpiCard label="Total medallas" value={formatNumber(stats.totalPorTipo['Medallas'] ?? 0)} tone="neutral" />
-              <KpiCard label="Total galvanos" value={formatNumber(stats.totalPorTipo['Galvanos'] ?? 0)} tone="neutral" />
-              <KpiCard label="Total diplomas" value={formatNumber(stats.totalPorTipo['Diplomas'] ?? 0)} tone="neutral" />
-              <KpiCard label="Total trofeos" value={formatNumber(stats.totalPorTipo['Trofeos'] ?? 0)} tone="neutral" />
-              <KpiCard label="Total certificados" value={formatNumber(stats.totalPorTipo['Certificados'] ?? 0)} tone="neutral" />
-              <KpiCard
-                label="Otros reconocimientos"
-                value={formatNumber(stats.totalPorTipo['Reconocimientos especiales'] ?? 0)}
-                tone="neutral"
-              />
-            </section>
-          )}
-
-          <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <ChartCard title="Reconocimientos por tipo">
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={tipoChartData} margin={{ top: 8, right: 8, left: -16, bottom: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#DDE3EC" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11, fontWeight: 600 }} interval={0} angle={-25} textAnchor="end" height={70} />
-                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                  <Tooltip />
-                  <Bar dataKey="value" name="Cantidad" fill="#006BB9" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartCard>
-
-            <ChartCard title="Solicitudes por comuna">
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={comunaChartData} margin={{ top: 8, right: 8, left: -16, bottom: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#DDE3EC" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11, fontWeight: 600 }} interval={0} angle={-25} textAnchor="end" height={70} />
-                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                  <Tooltip />
-                  <Bar dataKey="value" name="Solicitudes" fill="#25306B" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartCard>
-
-            <ChartCard title="Distribución por dimensión">
-              <ResponsiveContainer width="100%" height={260}>
-                <PieChart>
-                  <Pie data={dimensionChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={(entry) => entry.name}>
-                    {dimensionChartData.map((entry, index) => (
-                      <Cell key={entry.name} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend wrapperStyle={{ fontSize: 11, fontWeight: 600 }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </ChartCard>
-          </section>
-
-          <FiltersPanel
-            filters={filters}
-            comunas={comunas}
-            dimensiones={dimensiones}
-            subdimensiones={subdimensiones}
-            onChange={setFilters}
-            onReset={() => setFilters(EMPTY_FILTERS)}
-          />
-
-          <section className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-base font-extrabold text-navy-500">
-                Solicitudes recibidas
-                <span className="ml-2 text-sm font-semibold text-neutral-500">
-                  ({filteredRequests.length} de {requests.length})
-                </span>
-              </h2>
+          <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex flex-col gap-1">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-royal-500">Panel administrativo</p>
+              <h1 className="text-2xl font-extrabold tracking-tight text-navy-500 sm:text-3xl">{sectionTitle.title}</h1>
+              <p className="text-sm font-medium text-neutral-500">{sectionTitle.subtitle}</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
-                onClick={handleExportCsv}
-                disabled={filteredConsolidatedRows.length === 0}
-                className="inline-flex items-center gap-2 rounded-lg border border-navy-500 bg-white px-4 py-2 text-xs font-extrabold text-navy-500 transition hover:bg-navy-50 disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={() => setUsersOpen(true)}
+                className="inline-flex items-center gap-2 rounded-lg border border-navy-500 bg-white px-4 py-2 text-xs font-extrabold text-navy-500 transition hover:bg-navy-50"
               >
-                Exportar CSV consolidado
+                Usuarios administradores
               </button>
+              <button
+                type="button"
+                onClick={() => setPreviewOpen(true)}
+                className="inline-flex items-center gap-2 rounded-lg border border-navy-500 bg-white px-4 py-2 text-xs font-extrabold text-navy-500 transition hover:bg-navy-50"
+              >
+                Ver formulario de directores
+              </button>
+              {activeSection === 'solicitudes' && (
+                <button
+                  type="button"
+                  onClick={handleExportCsv}
+                  disabled={filteredConsolidatedRows.length === 0}
+                  className="inline-flex items-center gap-2 rounded-lg bg-royal-500 px-4 py-2 text-xs font-extrabold text-white transition hover:bg-royal-600 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Exportar CSV consolidado
+                </button>
+              )}
             </div>
+          </header>
 
-            <RequestsTable
-              requests={filteredRequests}
-              detailsByRequest={detailsByRequest}
-              loadingDetails={loadingDetails}
-              onChangeStatus={handleChangeStatus}
-              updatingRequestId={updatingRequestId}
-            />
-          </section>
+          {previewOpen && <FormPreviewModal onClose={() => setPreviewOpen(false)} />}
+          {usersOpen && <AdminUsersModal onClose={() => setUsersOpen(false)} />}
 
-          <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <ConsolidatedTable
-              title="Tabla consolidada por establecimiento"
-              columns={['Establecimiento', 'Comuna', 'Solicitudes', 'Reconocimientos', 'Cantidad total']}
-              rows={tableByEstablishment.map((row) => [
-                row.nombre,
-                row.comuna,
-                formatNumber(row.solicitudes),
-                formatNumber(row.reconocimientos),
-                formatNumber(row.cantidad),
-              ])}
-            />
-            <ConsolidatedTable
-              title="Tabla consolidada por tipo de reconocimiento"
-              columns={['Tipo de reconocimiento', 'N.º de requerimientos', 'Cantidad total']}
-              rows={tableByType.map((row) => [row.tipo, formatNumber(row.requerimientos), formatNumber(row.cantidad)])}
-            />
-          </section>
-        </>
-      )}
+          {errorMessage && <AlertMessage tone="error" title="Ocurrió un problema">{errorMessage}</AlertMessage>}
+
+          {loading ? (
+            <LoadingSpinner label="Cargando indicadores y solicitudes…" />
+          ) : (
+            <>
+              {activeSection === 'resumen' && (
+                <>
+                  {stats && (
+                    <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                      <KpiCard label="Establecimientos" value={formatNumber(stats.totalEstablecimientos)} tone="navy" />
+                      <KpiCard label="Respondieron" value={formatNumber(stats.establecimientosQueRespondieron)} tone="royal" />
+                      <KpiCard label="Pendientes" value={formatNumber(stats.establecimientosPendientes)} tone="coral" />
+                      <KpiCard label="% de avance" value={`${stats.porcentajeAvance}%`} tone="navy" />
+                      <KpiCard label="Reconocimientos solicitados" value={formatNumber(stats.totalReconocimientos)} tone="royal" />
+                      <KpiCard label="Solicitudes recibidas" value={formatNumber(requests.length)} tone="navy" />
+                      <KpiCard label="Total medallas" value={formatNumber(stats.totalPorTipo['Medallas'] ?? 0)} tone="neutral" />
+                      <KpiCard label="Total galvanos" value={formatNumber(stats.totalPorTipo['Galvanos'] ?? 0)} tone="neutral" />
+                      <KpiCard label="Total diplomas" value={formatNumber(stats.totalPorTipo['Diplomas'] ?? 0)} tone="neutral" />
+                      <KpiCard label="Total trofeos" value={formatNumber(stats.totalPorTipo['Trofeos'] ?? 0)} tone="neutral" />
+                      <KpiCard label="Total certificados" value={formatNumber(stats.totalPorTipo['Certificados'] ?? 0)} tone="neutral" />
+                      <KpiCard
+                        label="Otros reconocimientos"
+                        value={formatNumber(stats.totalPorTipo['Reconocimientos especiales'] ?? 0)}
+                        tone="neutral"
+                      />
+                    </section>
+                  )}
+
+                  <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                    <ChartCard title="Reconocimientos por tipo">
+                      <ResponsiveContainer width="100%" height={260}>
+                        <BarChart data={tipoChartData} margin={{ top: 8, right: 8, left: -16, bottom: 8 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#DDE3EC" />
+                          <XAxis dataKey="name" tick={{ fontSize: 11, fontWeight: 600 }} interval={0} angle={-25} textAnchor="end" height={70} />
+                          <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                          <Tooltip />
+                          <Bar dataKey="value" name="Cantidad" fill="#006BB9" radius={[6, 6, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </ChartCard>
+
+                    <ChartCard title="Solicitudes por comuna">
+                      <ResponsiveContainer width="100%" height={260}>
+                        <BarChart data={comunaChartData} margin={{ top: 8, right: 8, left: -16, bottom: 8 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#DDE3EC" />
+                          <XAxis dataKey="name" tick={{ fontSize: 11, fontWeight: 600 }} interval={0} angle={-25} textAnchor="end" height={70} />
+                          <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                          <Tooltip />
+                          <Bar dataKey="value" name="Solicitudes" fill="#25306B" radius={[6, 6, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </ChartCard>
+
+                    <ChartCard title="Distribución por dimensión">
+                      <ResponsiveContainer width="100%" height={260}>
+                        <PieChart>
+                          <Pie data={dimensionChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={(entry) => entry.name}>
+                            {dimensionChartData.map((entry, index) => (
+                              <Cell key={entry.name} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                          <Legend wrapperStyle={{ fontSize: 11, fontWeight: 600 }} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </ChartCard>
+                  </section>
+
+                  <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    <ConsolidatedTable
+                      title="Tabla consolidada por establecimiento"
+                      columns={['Establecimiento', 'Comuna', 'Solicitudes', 'Reconocimientos', 'Cantidad total']}
+                      rows={tableByEstablishment.map((row) => [
+                        row.nombre,
+                        row.comuna,
+                        formatNumber(row.solicitudes),
+                        formatNumber(row.reconocimientos),
+                        formatNumber(row.cantidad),
+                      ])}
+                    />
+                    <ConsolidatedTable
+                      title="Tabla consolidada por tipo de reconocimiento"
+                      columns={['Tipo de reconocimiento', 'N.º de requerimientos', 'Cantidad total']}
+                      rows={tableByType.map((row) => [row.tipo, formatNumber(row.requerimientos), formatNumber(row.cantidad)])}
+                    />
+                  </section>
+                </>
+              )}
+
+              {activeSection === 'solicitudes' && (
+                <>
+                  <FiltersPanel
+                    filters={filters}
+                    comunas={comunas}
+                    dimensiones={dimensiones}
+                    subdimensiones={subdimensiones}
+                    onChange={setFilters}
+                    onReset={() => setFilters(EMPTY_FILTERS)}
+                  />
+
+                  <section className="flex flex-col gap-3">
+                    <p className="text-sm font-semibold text-neutral-500">
+                      Mostrando {filteredRequests.length} de {requests.length} solicitudes recibidas
+                    </p>
+
+                    <RequestsTable
+                      requests={filteredRequests}
+                      detailsByRequest={detailsByRequest}
+                      loadingDetails={loadingDetails}
+                      onChangeStatus={handleChangeStatus}
+                      updatingRequestId={updatingRequestId}
+                    />
+                  </section>
+                </>
+              )}
+
+              {activeSection === 'auditoria' && <AuditLogView />}
+            </>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

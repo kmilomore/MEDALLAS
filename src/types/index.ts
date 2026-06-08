@@ -106,6 +106,19 @@ export type DashboardStats = {
   totalPorEstado: Record<string, number>
 }
 
+// Evento del registro de auditoría: quién hizo qué y cuándo. Proviene de la
+// hoja "Auditoria" (acción `getAuditoria`) y se alimenta llamando a la acción
+// `registrarEvento` desde los puntos relevantes del frontend (inicio de
+// sesión, creación de solicitudes, cambios de estado, gestión de admins).
+export type AuditEvent = {
+  fecha_hora: string
+  correo_electronico: string
+  nombre: string
+  rol: string
+  accion: string
+  detalle: string
+}
+
 export type GasResponse<T = unknown> = {
   success: boolean
   message?: string

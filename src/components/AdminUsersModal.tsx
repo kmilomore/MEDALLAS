@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { createAdmin, deleteAdmin, getAdmins } from '../services/gasApi'
 import type { Establishment } from '../types'
+import { useAuth } from '../context/AuthContext'
+import { logEvent } from '../utils/audit'
 import AlertMessage from './AlertMessage'
 import LoadingSpinner from './LoadingSpinner'
 
@@ -23,6 +25,7 @@ function field(admin: Establishment, key: string): string {
 }
 
 export default function AdminUsersModal({ onClose }: AdminUsersModalProps) {
+  const { auth } = useAuth()
   const [admins, setAdmins] = useState<Establishment[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -85,6 +88,11 @@ export default function AdminUsersModal({ onClose }: AdminUsersModalProps) {
       }
 
       setFormMessage({ tone: 'success', text: res.message || 'Usuario administrador agregado correctamente.' })
+      logEvent(
+        { email: auth.email, name: auth.name, role: 'admin' },
+        'Creó un usuario administrador',
+        trimmedEmail,
+      )
       setEmail('')
       setName('')
       setRole('')
@@ -105,6 +113,11 @@ export default function AdminUsersModal({ onClose }: AdminUsersModalProps) {
       const res = await deleteAdmin(adminEmail)
       if (!res.success) throw new Error(res.message || 'No fue posible eliminar al usuario administrador.')
       setAdmins((prev) => prev.filter((admin) => field(admin, EMAIL_KEY) !== adminEmail))
+      logEvent(
+        { email: auth.email, name: auth.name, role: 'admin' },
+        'Eliminó un usuario administrador',
+        adminEmail,
+      )
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : 'No fue posible eliminar al usuario administrador.')
     } finally {

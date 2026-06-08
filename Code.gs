@@ -79,6 +79,16 @@ var PME_SEED_DATA = [
   ['PME-GR-03', 'Gestión de Recursos', 'Gestión de recursos educativos'],
 ];
 
+/**
+ * Hoja "Auditoria": registro de eventos del sistema — quién ingresó, a qué
+ * hora y qué acciones realizó (crear solicitudes, cambiar estados, gestionar
+ * usuarios administradores, etc.). Se alimenta desde una única acción genérica
+ * (`registrarEvento`) que el frontend llama explícitamente en cada punto
+ * relevante, con los datos de la sesión activa (correo, nombre, rol).
+ */
+var AUDITORIA_SHEET_NAME = 'Auditoria';
+var AUDITORIA_HEADERS = ['fecha_hora', 'correo_electronico', 'nombre', 'rol', 'accion', 'detalle'];
+
 var ESTADO_INICIAL = 'Recibido';
 
 var RECOGNITION_TYPE_KEYS = [
@@ -126,6 +136,10 @@ function doPost(e) {
         return jsonResponse(getDashboardStats());
       case 'getPmeOptions':
         return jsonResponse(getPmeOptions());
+      case 'registrarEvento':
+        return jsonResponse(registrarEventoAuditoria(data.evento));
+      case 'getAuditoria':
+        return jsonResponse(getAuditoria());
       default:
         return jsonResponse({
           success: false,
@@ -181,6 +195,7 @@ function inicializarHojas() {
     { nombre: DETALLE_SHEET_NAME, headers: DETALLE_HEADERS },
     { nombre: ADMIN_SHEET_NAME, headers: ADMIN_HEADERS },
     { nombre: PME_SHEET_NAME, headers: PME_HEADERS },
+    { nombre: AUDITORIA_SHEET_NAME, headers: AUDITORIA_HEADERS },
   ];
 
   var hojas = definiciones.map(function (definicion) {
@@ -227,6 +242,85 @@ function getPmeOptions() {
     return { success: true, opciones: opciones };
   } catch (error) {
     return { success: false, message: 'No fue posible obtener las dimensiones y subdimensiones del PME.' };
+  }
+}
+
+/* ============================================================
+ * AUDITORÍA
+ *
+ * Registro de eventos del sistema: quién ingresó, a qué hora y qué
+ * acciones realizó. El frontend llama a `registrarEvento` en cada punto
+ * relevante (inicio de sesión, creación de solicitudes, cambios de estado,
+ * gestión de usuarios administradores), enviando los datos de la sesión
+ * activa. La fecha y hora se generan en el servidor para que el registro
+ * sea confiable y no dependa del reloj del navegador.
+ * ============================================================ */
+
+function registrarEventoAuditoria(evento) {
+  if (!evento || typeof evento !== 'object') {
+    return { success: false, message: 'Debes indicar los datos del evento de auditoría.' };
+  }
+
+  try {
+    var lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+
+    try {
+      var spreadsheet = SpreadsheetApp.openById(SHEET_ID);
+      var sheet = getOrCreateSheet(spreadsheet, AUDITORIA_SHEET_NAME, AUDITORIA_HEADERS);
+      var now = new Date();
+      var fechaHora = Utilities.formatDate(now, Session.getScriptTimeZone() || 'America/Santiago', "yyyy-MM-dd'T'HH:mm:ss");
+
+      sheet.appendRow([
+        fechaHora,
+        normalizeEmail(evento.email),
+        evento.nombre || '',
+        evento.rol || '',
+        evento.accion || '',
+        evento.detalle || '',
+      ]);
+
+      return { success: true };
+    } finally {
+      lock.releaseLock();
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: 'No fue posible registrar el evento de auditoría: ' + (error && error.message ? error.message : error),
+    };
+  }
+}
+
+/**
+ * Devuelve el historial de eventos de auditoría ordenado del más reciente
+ * al más antiguo, para alimentar la vista "Auditoría" del panel admin.
+ */
+function getAuditoria() {
+  try {
+    var spreadsheet = SpreadsheetApp.openById(SHEET_ID);
+    var sheet = getOrCreateSheet(spreadsheet, AUDITORIA_SHEET_NAME, AUDITORIA_HEADERS);
+    var rows = getSheetDataAsObjects(sheet);
+
+    var eventos = rows.map(function (row) {
+      return {
+        fecha_hora: formatSheetDate(row['fecha_hora']),
+        correo_electronico: String(row['correo_electronico'] || ''),
+        nombre: String(row['nombre'] || ''),
+        rol: String(row['rol'] || ''),
+        accion: String(row['accion'] || ''),
+        detalle: String(row['detalle'] || ''),
+      };
+    });
+
+    eventos.sort(function (a, b) {
+      if (a.fecha_hora === b.fecha_hora) return 0;
+      return a.fecha_hora < b.fecha_hora ? 1 : -1;
+    });
+
+    return { success: true, eventos: eventos };
+  } catch (error) {
+    return { success: false, message: 'No fue posible obtener el registro de auditoría.' };
   }
 }
 

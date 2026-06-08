@@ -4,6 +4,7 @@ import { createRequest } from '../services/gasApi'
 import type { RecognitionItem } from '../types'
 import { emptyRecognitionItem, validateRequest } from '../utils/validators'
 import { getEstablishmentName } from '../utils/formatters'
+import { logEvent } from '../utils/audit'
 import logoSlep from '../assets/logo-slep-colchagua.webp'
 import { useAuth } from '../context/AuthContext'
 import LoginDirector from './LoginDirector'
@@ -56,6 +57,11 @@ export default function DirectorPortal() {
       if (res.success) {
         setRequestId(res.requestId ?? null)
         setStep('success')
+        logEvent(
+          { email: auth.email, name: auth.name, role: 'director' },
+          'Creó una solicitud de reconocimientos',
+          res.requestId ?? undefined,
+        )
       } else {
         setSubmitError(
           res.message ||
