@@ -79,7 +79,9 @@ MEDALLAS/
      datos de su establecimiento (cargados automáticamente desde la base oficial).
    - Completan [RecognitionForm.tsx](src/components/RecognitionForm.tsx): pueden
      agregar uno o más reconocimientos (tipo, cantidad, dimensión, subdimensión,
-     acción asociada, fecha estimada, observaciones).
+     acción asociada, fecha estimada, observaciones). La **dimensión y
+     subdimensión** se seleccionan mediante una lista cerrada y encadenada según
+     el marco oficial del PME — ver sección 3.5.
    - Pasan a [RequestSummary.tsx](src/components/RequestSummary.tsx) para revisar
      antes de confirmar el envío.
    - Al confirmar, se llama a `createRequest` (acción del backend) y se muestra una
@@ -145,6 +147,37 @@ editarlo ni enviarlo.
 > `<fieldset disabled>` porque varios navegadores no soportan bien `display: contents`
 > sobre `fieldset`, lo que rompía el layout del modal (se "expandía" verticalmente).
 
+### 3.5 Selección encadenada Dimensión → Subdimensión (marco PME)
+
+Las opciones de "Dimensión" y "Subdimensión" del formulario **ya no son listas
+estáticas**: provienen de la hoja **`PME`** de la planilla (tabla oficial del Plan
+de Mejoramiento Educativo), cargada vía la acción `getPmeOptions`. Cada combinación
+tiene un **código único** (ej. `PME-GP-01`).
+
+- **Funcionamiento**: el director elige primero una **Dimensión**; el selector de
+  **Subdimensión** permanece deshabilitado hasta entonces y, al habilitarse, solo
+  muestra las subdimensiones que pertenecen a la dimensión elegida (cada opción se
+  presenta como `CÓDIGO · Nombre`, ej. "PME-GP-01 · Gestión curricular"). Al elegir
+  cambiar de dimensión, la subdimensión y el código se limpian para forzar una
+  selección coherente.
+- **Lista cerrada**: se eliminó por completo la opción "Otro" (y el campo
+  `subdimension_otro`) para dimensión/subdimensión — ahora es una lista cerrada
+  según el marco oficial del PME (decisión explícita del usuario, ver sección 10).
+- **Persistencia**: cada reconocimiento guarda también `codigo_pme` (el código de
+  la subdimensión elegida, ej. `PME-GP-01`), para trazabilidad y reportes. Se
+  muestra en `RequestsTable` (columna "Código PME") y se exporta en el CSV
+  consolidado.
+- **Implementación**:
+  - [RecognitionForm.tsx](src/components/RecognitionForm.tsx) carga las opciones
+    PME al montar (`getPmeOptions`, con spinner/alerta de error) y las pasa a cada
+    [RecognitionItem.tsx](src/components/RecognitionItem.tsx), que arma las listas
+    de dimensiones únicas y de subdimensiones filtradas por la dimensión activa.
+  - Como `FormPreviewModal` reutiliza `RecognitionForm`, la vista previa del admin
+    también muestra el encadenamiento real con datos en vivo.
+  - `AdminDashboard`/`FiltersPanel` derivan sus opciones de filtro de Dimensión y
+    Subdimensión (también encadenadas) a partir de los datos reales recibidos
+    (`detailsByRequest`, vía `useMemo`), con el mismo patrón que ya usaba `comunas`.
+
 ---
 
 ## 4. Tipos y datos compartidos
@@ -155,18 +188,26 @@ Definidos en [types/index.ts](src/types/index.ts):
   porque los encabezados de la base de establecimientos pueden variar. Se reutiliza
   también para representar registros de la hoja "Admin".
 - `RecognitionItem`: forma de cada reconocimiento dentro de una solicitud
-  (`tipo_reconocimiento`, `cantidad`, `dimension`, `subdimension`, `nombre_accion`,
-  `descripcion`, `fecha_estimada_uso`, `observaciones`, etc.)
+  (`tipo_reconocimiento`, `cantidad`, `dimension`, `subdimension`, `codigo_pme`,
+  `nombre_accion`, `descripcion`, `fecha_estimada_uso`, `observaciones`, etc.).
+  `dimension`/`subdimension` son `string` simples (ya no uniones literales) porque
+  ahora provienen de datos reales del backend (`PmeOption`), no de listas estáticas.
+- `PmeOption`: combinación oficial `{ codigo, dimension, subdimension }` del marco
+  PME, obtenida vía `getPmeOptions` — alimenta la selección encadenada del
+  formulario (ver sección 3.5).
 - `AdminRequest` / `RequestDetail`: filas que devuelve el backend para el panel admin
   (cabecera de la solicitud y detalle de cada reconocimiento, respectivamente).
+  `RequestDetail` conserva `subdimension_otro` (solo para mostrar/exportar datos
+  históricos previos a la migración al PME) y agrega `codigo_pme`.
 - `DashboardStats`: estructura de los indicadores y totales por tipo/dimensión/comuna/estado.
 - `GasResponse<T>`: envoltorio genérico de las respuestas del backend
   (`{ success: boolean; message?: string } & T`).
 - `ValidateUserAccessResponse`: respuesta de la validación de acceso, incluye
   `role: 'director' | 'admin'`, y el registro (`establishment` o `admin`) según el caso.
-- Listas de opciones controladas: `RECOGNITION_TYPES`, `DIMENSIONS`, `SUBDIMENSIONS`,
-  `REVIEW_STATUSES` (estas también deben mantenerse coherentes con lo que espera el
-  backend al guardar y filtrar).
+- Listas de opciones controladas: `RECOGNITION_TYPES`, `REVIEW_STATUSES` (deben
+  mantenerse coherentes con lo que espera el backend al guardar y filtrar). Las
+  antiguas `DIMENSIONS`/`SUBDIMENSIONS` (listas estáticas con opción "Otro") fueron
+  **eliminadas** — esos datos ahora viven en la hoja `PME` y se cargan dinámicamente.
 
 ---
 
@@ -244,14 +285,23 @@ planilla de Google Sheets (`SHEET_ID` en la línea 9 de `Code.gs`).
 |---|---|---|
 | (primera hoja, base de establecimientos) | Datos oficiales de cada establecimiento, incluido su correo de director/a | Variables (se detectan por alias normalizados) |
 | `Solicitudes` | Cabecera de cada solicitud enviada | `id_solicitud, fecha_envio, correo_electronico, rbd, nombre_establecimiento, comuna, total_reconocimientos, estado_revision, observaciones_generales` |
-| `DetalleSolicitudes` | Un registro por cada reconocimiento dentro de una solicitud | `id_detalle, id_solicitud, ..., tipo_reconocimiento, cantidad, dimension, subdimension, nombre_accion, descripcion, fecha_estimada_uso, observaciones` |
+| `DetalleSolicitudes` | Un registro por cada reconocimiento dentro de una solicitud | `id_detalle, id_solicitud, ..., tipo_reconocimiento, cantidad, dimension, subdimension, subdimension_otro, nombre_accion, descripcion, fecha_estimada_uso, observaciones, codigo_pme` |
 | `Admin` | Usuarios con acceso al panel administrativo | `CORREO ELECTRONICO, NOMBRE, CARGO, ACTIVO` |
+| `PME` | Tabla de referencia oficial: dimensiones/subdimensiones válidas y su código único (ej. `PME-GP-01`) — alimenta la selección encadenada del formulario | `CODIGO, DIMENSION, SUB_DIMESION` |
+
+> **`codigo_pme` está al final de `DETALLE_HEADERS`** (no en su posición "lógica"
+> junto a `subdimension`) — decisión deliberada de compatibilidad: `appendRow`
+> escribe por posición, y `DetalleSolicitudes` ya tenía datos en producción.
+> Agregar la columna nueva al final evita desalinear filas existentes. Por la
+> misma razón **se conservó la columna `subdimension_otro`** aunque el formulario
+> ya no la use (sigue sirviendo para mostrar/exportar reconocimientos históricos
+> que se guardaron como "Otro" antes de migrar al marco PME). Ver también sección 10.
 
 ### 6.2 Acciones disponibles (`doPost` → `switch(action)`)
 
 | Acción | Función | Descripción |
 |---|---|---|
-| `inicializarHojas` | `inicializarHojas()` | Crea las hojas `Solicitudes`, `DetalleSolicitudes` y `Admin` si no existen (idempotente — no duplica ni modifica las existentes). Se puede ejecutar manualmente desde el editor de Apps Script o vía POST. |
+| `inicializarHojas` | `inicializarHojas()` | Crea las hojas `Solicitudes`, `DetalleSolicitudes`, `Admin` y `PME` si no existen (idempotente — no duplica ni modifica las existentes). Además, **siembra automáticamente la hoja `PME`** con las 12 combinaciones oficiales (`PME_SEED_DATA`) la primera vez que se crea o si está vacía (`getLastRow() === 1`, solo encabezados). Se puede ejecutar manualmente desde el editor de Apps Script o vía POST. |
 | `validateDirectorEmail` | `validateDirectorEmail(email)` | (Validación legacy contra solo la base de establecimientos — anterior al login con Google + Admin) |
 | `validateUserAccess` | `validateUserAccess(email)` | **Cadena de validación actual**: 1) busca el correo en la base de establecimientos (perfil `director`); 2) si no hay coincidencia, busca en la hoja `Admin` (perfil `admin`, valida que esté `ACTIVO`). Devuelve `{ success, role, establishment? , admin? }`. |
 | `getAdmins` | `getAdmins()` | Lista todos los registros de la hoja `Admin`. |
@@ -263,6 +313,7 @@ planilla de Google Sheets (`SHEET_ID` en la línea 9 de `Code.gs`).
 | `getRequestDetails` | `getRequestDetails(requestId)` | Lista el detalle (reconocimientos) de una solicitud específica. |
 | `updateRequestStatus` | `updateRequestStatus(requestId, status)` | Cambia `estado_revision` de una solicitud. |
 | `getDashboardStats` | `getDashboardStats()` | Calcula los indicadores y totales agregados que alimentan los KPIs y gráficos del panel. |
+| `getPmeOptions` | `getPmeOptions()` | Lee la hoja `PME` y devuelve `{ codigo, dimension, subdimension }` por cada combinación oficial — usado por el formulario para la selección encadenada Dimensión → Subdimensión (ver sección 3.5). |
 
 ### 6.3 Utilidades internas relevantes
 
@@ -364,6 +415,16 @@ npx vite build    # build completo
 - **Las tablas anchas necesitan contenedor `overflow-x-auto` con `min-w-[…]` en la
   tabla** — de lo contrario se desbordan del contenedor/modal y se "pierden" columnas
   (pasó con `AdminUsersModal` y ya estaba resuelto en `RequestsTable`).
+- **Dimensión/Subdimensión: lista cerrada según el marco oficial del PME, sin
+  "Otro"** — requerimiento explícito del usuario: el formulario debe usar
+  exactamente las 12 combinaciones oficiales (con su código único) de la hoja
+  `PME`, presentadas como selección encadenada (Dimensión → Subdimensión filtrada).
+  No reintroducir listas estáticas genéricas ni la opción "Otro" para estos campos.
+- **Cambios de esquema en hojas con datos en producción van siempre al final**
+  — `appendRow`/`getOrCreateSheet` operan por posición de columna, no por nombre.
+  Por eso `codigo_pme` se agregó al final de `DETALLE_HEADERS` (no junto a
+  `subdimension`) y se conservó `subdimension_otro` aunque ya no se usa. Aplicar
+  el mismo criterio ante cualquier futura columna nueva en hojas ya pobladas.
 - **`Establishment` es intencionalmente un tipo flexible** (`Record` dinámico) porque
   los encabezados de la base de datos de establecimientos pueden variar entre
   planillas/años — no tipar sus campos de forma rígida.
