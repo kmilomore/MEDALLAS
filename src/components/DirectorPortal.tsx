@@ -11,6 +11,7 @@ import EstablishmentInfo from './EstablishmentInfo'
 import RecognitionForm from './RecognitionForm'
 import RequestSummary from './RequestSummary'
 import AlertMessage from './AlertMessage'
+import WelcomeBanner from './WelcomeBanner'
 
 type Step = 'form' | 'summary' | 'success'
 
@@ -123,6 +124,8 @@ export default function DirectorPortal() {
       </header>
 
       <main className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-8 sm:px-6">
+        <WelcomeBanner name={auth.name} email={auth.email} />
+
         {step === 'success' ? (
           <SuccessScreen establishmentName={getEstablishmentName(establishment)} requestId={requestId} onRestart={handleRestart} />
         ) : (

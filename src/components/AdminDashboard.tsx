@@ -31,6 +31,7 @@ import KpiCard from './KpiCard'
 import LoadingSpinner from './LoadingSpinner'
 import LoginDirector from './LoginDirector'
 import RequestsTable from './RequestsTable'
+import WelcomeBanner from './WelcomeBanner'
 
 const CHART_COLORS = ['#006BB9', '#25306B', '#FF1D3D', '#56A6DE', '#1F8A5B', '#8A5400', '#7B85B6', '#94081B']
 
@@ -201,6 +202,8 @@ export default function AdminDashboard() {
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
+      <WelcomeBanner name={auth.name} email={auth.email} />
+
       <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-1">
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-royal-500">Panel administrativo</p>
