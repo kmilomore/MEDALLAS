@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { jwtDecode } from 'jwt-decode'
 import { validateUserAccess } from '../services/gasApi'
+import { consumeGoogleRedirectCredential, startGoogleSignIn } from '../utils/googleAuth'
 import type { Establishment, UserRole } from '../types'
 
 type GoogleIdTokenPayload = {
@@ -38,7 +39,7 @@ const STORAGE_KEY = 'medallas.sesion'
 
 type AuthContextValue = {
   auth: AuthState
-  signInWithGoogleCredential: (credential: string) => Promise<void>
+  beginGoogleSignIn: () => void
   signOut: () => void
 }
 
@@ -54,6 +55,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sessionStorage.removeItem(STORAGE_KEY)
     }
   }, [auth])
+
+  // Al volver de Google (flujo de redirección, sin popups), procesa el
+  // id_token recibido en el fragmento de la URL, igual que hace Supabase
+  // Auth con sus proveedores OAuth.
+  useEffect(() => {
+    const credential = consumeGoogleRedirectCredential()
+    if (credential) {
+      void signInWithGoogleCredential(credential)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  function beginGoogleSignIn() {
+    setAuth({ ...INITIAL_STATE, status: 'checking' })
+    startGoogleSignIn()
+  }
 
   async function signInWithGoogleCredential(credential: string) {
     let payload: GoogleIdTokenPayload
@@ -144,7 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuth(INITIAL_STATE)
   }
 
-  return <AuthContext.Provider value={{ auth, signInWithGoogleCredential, signOut }}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={{ auth, beginGoogleSignIn, signOut }}>{children}</AuthContext.Provider>
 }
 
 export function useAuth(): AuthContextValue {

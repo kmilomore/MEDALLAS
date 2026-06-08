@@ -15,7 +15,7 @@ import AlertMessage from './AlertMessage'
 type Step = 'form' | 'summary' | 'success'
 
 export default function DirectorPortal() {
-  const { auth, signInWithGoogleCredential, signOut } = useAuth()
+  const { auth, beginGoogleSignIn, signOut } = useAuth()
 
   const [step, setStep] = useState<Step>('form')
   const [items, setItems] = useState<RecognitionItem[]>([emptyRecognitionItem()])
@@ -80,7 +80,7 @@ export default function DirectorPortal() {
   if (auth.status === 'signedOut' || auth.status === 'checking' || auth.status === 'unauthorized') {
     return (
       <LoginDirector
-        onCredential={signInWithGoogleCredential}
+        onSignIn={beginGoogleSignIn}
         loading={auth.status === 'checking'}
         errorMessage={auth.status === 'unauthorized' ? auth.message : null}
       />

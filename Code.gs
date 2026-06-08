@@ -75,6 +75,8 @@ function doPost(e) {
     var action = data && data.action;
 
     switch (action) {
+      case 'inicializarHojas':
+        return jsonResponse(inicializarHojas());
       case 'validateDirectorEmail':
         return jsonResponse(validateDirectorEmail(data.email));
       case 'validateUserAccess':
@@ -127,6 +129,43 @@ function parseRequest(e) {
 
 function jsonResponse(data) {
   return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ============================================================
+ * INICIALIZACIÓN DE LA PLANILLA
+ *
+ * Crea (si no existen) todas las hojas que necesita el sistema:
+ * "Solicitudes", "DetalleSolicitudes" y "Admin", cada una con sus
+ * encabezados correctos. Es seguro ejecutarla varias veces: las
+ * hojas que ya existan no se modifican ni se duplican.
+ *
+ * Se puede ejecutar de dos formas:
+ *   1) Manualmente desde el editor de Apps Script: selecciona la
+ *      función "inicializarHojas" en el menú desplegable y presiona
+ *      "Ejecutar".
+ *   2) Desde el frontend/Postman enviando { "action": "inicializarHojas" }.
+ * ============================================================ */
+
+function inicializarHojas() {
+  var spreadsheet = SpreadsheetApp.openById(SHEET_ID);
+
+  var definiciones = [
+    { nombre: SOLICITUDES_SHEET_NAME, headers: SOLICITUDES_HEADERS },
+    { nombre: DETALLE_SHEET_NAME, headers: DETALLE_HEADERS },
+    { nombre: ADMIN_SHEET_NAME, headers: ADMIN_HEADERS },
+  ];
+
+  var hojas = definiciones.map(function (definicion) {
+    var existiaAntes = !!spreadsheet.getSheetByName(definicion.nombre);
+    getOrCreateSheet(spreadsheet, definicion.nombre, definicion.headers);
+    return { hoja: definicion.nombre, estado: existiaAntes ? 'ya existía' : 'creada' };
+  });
+
+  return {
+    success: true,
+    message: 'Las hojas necesarias fueron verificadas; las que faltaban se crearon con sus encabezados.',
+    hojas: hojas,
+  };
 }
 
 /* ============================================================

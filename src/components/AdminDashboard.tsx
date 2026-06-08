@@ -33,7 +33,7 @@ import RequestsTable from './RequestsTable'
 const CHART_COLORS = ['#006BB9', '#25306B', '#FF1D3D', '#56A6DE', '#1F8A5B', '#8A5400', '#7B85B6', '#94081B']
 
 export default function AdminDashboard() {
-  const { auth, signInWithGoogleCredential, signOut } = useAuth()
+  const { auth, beginGoogleSignIn, signOut } = useAuth()
 
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [requests, setRequests] = useState<AdminRequest[]>([])
@@ -169,7 +169,7 @@ export default function AdminDashboard() {
   if (auth.status === 'signedOut' || auth.status === 'checking' || auth.status === 'unauthorized') {
     return (
       <LoginDirector
-        onCredential={signInWithGoogleCredential}
+        onSignIn={beginGoogleSignIn}
         loading={auth.status === 'checking'}
         errorMessage={auth.status === 'unauthorized' ? auth.message : null}
       />
