@@ -25,6 +25,7 @@ import { formatNumber } from '../utils/formatters'
 import { useAuth } from '../context/AuthContext'
 import AlertMessage from './AlertMessage'
 import FiltersPanel, { EMPTY_FILTERS, type RequestFilters } from './FiltersPanel'
+import FormPreviewModal from './FormPreviewModal'
 import KpiCard from './KpiCard'
 import LoadingSpinner from './LoadingSpinner'
 import LoginDirector from './LoginDirector'
@@ -43,6 +44,7 @@ export default function AdminDashboard() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [updatingRequestId, setUpdatingRequestId] = useState<string | null>(null)
   const [filters, setFilters] = useState<RequestFilters>(EMPTY_FILTERS)
+  const [previewOpen, setPreviewOpen] = useState(false)
 
   useEffect(() => {
     if (auth.status === 'authenticated' && auth.role === 'admin') {
@@ -193,6 +195,13 @@ export default function AdminDashboard() {
           </p>
         </div>
         <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => setPreviewOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg border border-navy-500 bg-white px-4 py-2 text-xs font-extrabold text-navy-500 transition hover:bg-navy-50"
+          >
+            Ver formulario de directores
+          </button>
           <Link to="/" className="text-xs font-bold text-neutral-400 transition hover:text-royal-500">
             Portal de directores
           </Link>
@@ -206,6 +215,8 @@ export default function AdminDashboard() {
           </button>
         </div>
       </header>
+
+      {previewOpen && <FormPreviewModal onClose={() => setPreviewOpen(false)} />}
 
       {errorMessage && <AlertMessage tone="error" title="Ocurrió un problema">{errorMessage}</AlertMessage>}
 
