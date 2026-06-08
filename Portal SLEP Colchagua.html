@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>Portal de Planificación · SLEP Colchagua</title>
+<link rel="stylesheet" href="colors_and_type.css" />
+<script src="deck-stage.js"></script>
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:#0B0F1E;font-family:"Museo Sans","Avenir Next","Segoe UI",sans-serif;color:var(--fg-1)}
+  section{
+    width:1920px;height:1080px;background:var(--bg-page);
+    position:relative;overflow:hidden;padding:96px 120px;
+    display:flex;flex-direction:column;
+    font-family:"Museo Sans","Avenir Next","Segoe UI",sans-serif;
+  }
+
+  /* Chrome */
+  .topbar{
+    position:absolute;top:48px;left:120px;right:120px;
+    display:flex;justify-content:space-between;align-items:center;
+    font-size:14px;letter-spacing:0.12em;text-transform:uppercase;color:var(--fg-3);
+    font-weight:700;
+  }
+  .topbar .brand{display:flex;align-items:center;gap:14px}
+  .topbar .brand img{width:44px;height:44px;border-radius:50%}
+  .topbar .brand .name{font-weight:900;color:var(--navy-500);letter-spacing:0.08em}
+  .footer{
+    position:absolute;bottom:48px;left:120px;right:120px;
+    display:flex;justify-content:space-between;align-items:center;
+    font-size:14px;color:var(--fg-3);
+    border-top:1px solid var(--border-1);padding-top:18px;
+    font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
+  }
+  .footer .accent{display:flex;align-items:center;gap:10px}
+  .footer .accent::before{content:"";width:18px;height:4px;background:var(--coral-500)}
+
+  /* Typography */
+  .eyebrow-lg{font-size:18px;letter-spacing:0.18em;text-transform:uppercase;color:var(--royal-500);font-weight:700}
+  h1.display{font-size:124px;line-height:1.0;font-weight:900;letter-spacing:-0.02em;margin:0;color:var(--navy-500)}
+  h2.title{font-size:84px;line-height:1.05;font-weight:900;letter-spacing:-0.02em;margin:0;color:var(--navy-500)}
+  h2.title em{font-style:normal;color:var(--coral-500)}
+  h2.title b{font-weight:900;color:var(--royal-500)}
+  h3.sub{font-size:30px;font-weight:500;color:var(--fg-2);margin:0;line-height:1.35;max-width:1400px}
+  p.lede{font-size:26px;line-height:1.5;color:var(--fg-2);max-width:1500px;margin:0;font-weight:500}
+  p.body{font-size:20px;line-height:1.55;color:var(--fg-2);margin:0;font-weight:500}
+  .h-label{font-size:14px;letter-spacing:0.14em;text-transform:uppercase;color:var(--royal-500);font-weight:700}
+  .h-label.alt{color:var(--fg-3)}
+
+  /* Cards */
+  .card{
+    background:var(--bg-surface);border:1px solid var(--border-1);border-radius:12px;
+    padding:32px;display:flex;flex-direction:column;gap:14px;
+    box-shadow:var(--shadow-sm);
+  }
+  .card.accent{border-top:4px solid var(--royal-500)}
+  .card.coral{border-top:4px solid var(--coral-500)}
+  .card.navy{border-top:4px solid var(--navy-500)}
+
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px}
+  .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
+
+  .tag{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--navy-500);background:var(--royal-50);border:1px solid var(--royal-100);padding:8px 14px;border-radius:999px;letter-spacing:0.04em}
+  .tag.coral{background:var(--coral-50);color:var(--coral-700);border-color:var(--coral-100)}
+  .tag.navy{background:var(--navy-50);color:var(--navy-700);border-color:var(--navy-100)}
+
+  .pill{display:inline-flex;align-items:center;gap:10px;padding:10px 16px;border-radius:999px;font-size:16px;font-weight:700;border:1px solid var(--border-1);background:var(--bg-surface);color:var(--fg-2)}
+  .pill .d{width:10px;height:10px;border-radius:50%}
+
+  /* Split */
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:32px;flex:1;align-items:stretch}
+  .panel{
+    background:var(--bg-surface);border:1px solid var(--border-1);border-radius:12px;padding:36px;
+    display:flex;flex-direction:column;gap:18px;height:100%;
+    box-shadow:var(--shadow-sm);
+  }
+  .panel.dark{background:var(--grad-deep-blue);color:#fff;border-color:transparent}
+  .panel.dark .h-label{color:var(--navy-100)}
+  .panel.dark .quote{color:#fff;border-color:var(--coral-500)}
+
+  /* COVER */
+  .cover{padding:0;display:grid;grid-template-columns:0.95fr 1.05fr}
+  .cover .left{padding:110px 100px;background:var(--bg-page);display:flex;flex-direction:column;justify-content:space-between;position:relative}
+  .cover .left::after{content:"";position:absolute;bottom:0;left:0;right:0;height:6px;background:linear-gradient(90deg,var(--navy-500) 0%,var(--navy-500) 65%,var(--coral-500) 65%,var(--coral-500) 100%)}
+  .cover .left .top{display:flex;align-items:center;gap:18px}
+  .cover .left .top img{width:64px;height:64px}
+  .cover .left .top .org{font-size:13px;letter-spacing:0.14em;text-transform:uppercase;color:var(--navy-500);font-weight:900;line-height:1.25}
+  .cover .left .top .org small{display:block;font-size:11px;font-weight:700;color:var(--fg-3);letter-spacing:0.16em}
+  .cover .right{background:var(--grad-hero);color:#fff;padding:110px 100px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+  .cover .right::before{
+    content:"";position:absolute;inset:0;
+    background-image:
+      linear-gradient(to right, rgba(255,255,255,0.06) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,0.06) 1px, transparent 1px);
+    background-size:80px 80px;
+  }
+  .cover .right::after{
+    content:"";position:absolute;width:560px;height:560px;border-radius:50%;
+    bottom:-200px;right:-200px;background:var(--coral-500);opacity:0.18;filter:blur(20px);
+  }
+  .cover .left h1{font-size:128px;line-height:0.94;font-weight:900;letter-spacing:-0.025em;margin:0;color:var(--navy-500)}
+  .cover .left h1 b{color:var(--coral-500);font-weight:900}
+  .cover .meta{font-size:14px;color:var(--fg-3);letter-spacing:0.18em;text-transform:uppercase;font-weight:700}
+  .cover .ribbon{display:flex;align-items:center;gap:14px;font-size:14px;letter-spacing:0.18em;text-transform:uppercase;color:#fff;font-weight:700;position:relative;z-index:1}
+  .cover .ribbon .bar{width:36px;height:4px;background:var(--coral-500)}
+  .cover .right .big{
+    position:relative;z-index:1;font-weight:900;font-size:60px;line-height:1.06;letter-spacing:-0.015em;color:#fff;
+  }
+  .cover .right .badge{position:relative;z-index:1;font-size:18px;color:var(--navy-100);border:1px solid rgba(255,255,255,0.25);padding:14px 22px;border-radius:8px;display:inline-block;font-weight:700;letter-spacing:0.06em;text-transform:uppercase}
+
+  /* INDEX */
+  .toc{display:flex;flex-direction:column;gap:6px;margin-top:36px}
+  .toc-row{display:grid;grid-template-columns:90px 1fr 280px;align-items:center;gap:30px;padding:18px 0;border-bottom:1px solid var(--border-1)}
+  .toc-row .n{font-weight:900;font-size:32px;color:var(--coral-500);letter-spacing:-0.02em}
+  .toc-row .t{font-size:30px;color:var(--navy-500);font-weight:700;letter-spacing:-0.01em}
+  .toc-row .d{font-size:14px;color:var(--fg-3);text-align:right;text-transform:uppercase;letter-spacing:0.14em;font-weight:700}
+
+  /* Stack/layers */
+  .stack{display:flex;flex-direction:column;gap:14px}
+  .layer{
+    display:flex;align-items:center;gap:24px;padding:24px 28px;border-radius:12px;border:1px solid var(--border-1);background:var(--bg-surface);
+    box-shadow:var(--shadow-sm);
+  }
+  .layer .pip{width:64px;height:64px;border-radius:12px;display:grid;place-items:center;color:#fff;font-weight:900;font-size:18px;letter-spacing:0.05em}
+  .layer .ttl{font-size:24px;font-weight:900;color:var(--navy-500)}
+  .layer .sub{font-size:18px;color:var(--fg-2);font-weight:500;margin-top:4px}
+  .layer .meta{margin-left:auto;font-size:13px;color:var(--fg-3);font-weight:700;letter-spacing:0.1em;text-transform:uppercase}
+  .stack .down{text-align:center;color:var(--coral-500);font-size:24px;font-weight:900}
+
+  /* Numbers / stats */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--border-1);border-bottom:1px solid var(--border-1);margin-top:36px;background:var(--bg-surface);border-radius:12px;box-shadow:var(--shadow-sm)}
+  .stat{padding:32px 28px;border-right:1px solid var(--border-1)}
+  .stat:last-child{border-right:none}
+  .stat .v{font-size:64px;line-height:1;color:var(--royal-500);font-weight:900;letter-spacing:-0.02em}
+  .stat .l{font-size:14px;color:var(--fg-3);letter-spacing:0.12em;text-transform:uppercase;margin-top:10px;font-weight:700}
+
+  /* Modules */
+  .modules{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:32px}
+  .module{background:var(--bg-surface);border:1px solid var(--border-1);border-radius:12px;padding:28px;display:flex;flex-direction:column;gap:10px;min-height:240px;box-shadow:var(--shadow-sm);border-top:3px solid var(--royal-500)}
+  .module.coral{border-top-color:var(--coral-500)}
+  .module .ico{
+    width:52px;height:52px;border-radius:12px;background:var(--royal-50);
+    display:grid;place-items:center;font-size:22px;color:var(--royal-500);font-weight:900;
+  }
+  .module.coral .ico{background:var(--coral-50);color:var(--coral-500)}
+  .module h4{font-size:24px;margin:6px 0 0;color:var(--navy-500);font-weight:900;letter-spacing:-0.01em}
+  .module p{font-size:16px;color:var(--fg-2);margin:0;line-height:1.5;font-weight:500}
+
+  /* Comparison table */
+  .compare{width:100%;border-collapse:collapse;margin-top:24px;background:var(--bg-surface);border:1px solid var(--border-1);border-radius:12px;overflow:hidden;box-shadow:var(--shadow-sm)}
+  .compare th, .compare td{padding:18px 22px;text-align:left;font-size:18px;border-bottom:1px solid var(--border-1);vertical-align:top}
+  .compare th{background:var(--navy-500);color:#fff;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;font-weight:700}
+  .compare tr:last-child td{border-bottom:none}
+  .compare td.feat{font-weight:700;color:var(--navy-500);width:280px}
+  .compare .yes{color:#1F8A5B;font-weight:700}
+  .compare .no{color:var(--coral-600);font-weight:700}
+  .compare .neutral{color:var(--fg-2);font-weight:500}
+
+  /* Tools */
+  .tool-row{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:18px}
+  .tool{
+    background:var(--bg-surface);border:1px solid var(--border-1);border-radius:12px;padding:24px;
+    display:flex;flex-direction:column;gap:8px;min-height:210px;box-shadow:var(--shadow-sm);
+  }
+  .tool .glyph{
+    width:54px;height:54px;border-radius:12px;display:grid;place-items:center;
+    color:#fff;font-size:22px;font-weight:900;
+  }
+  .tool .role{font-size:13px;color:var(--fg-3);text-transform:uppercase;letter-spacing:0.1em;font-weight:700;margin-top:4px}
+  .tool .name{font-size:22px;font-weight:900;color:var(--navy-500);margin-top:auto;letter-spacing:-0.01em}
+  .tool p{font-size:15px;color:var(--fg-2);margin:0;line-height:1.45;font-weight:500}
+
+  /* Timeline */
+  .timeline{display:grid;grid-template-columns:repeat(6,1fr);gap:0;margin-top:60px;position:relative}
+  .timeline::before{content:"";position:absolute;top:30px;left:30px;right:30px;height:2px;background:var(--border-1)}
+  .t-node{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding-right:24px;position:relative}
+  .t-dot{width:22px;height:22px;border-radius:50%;background:#fff;border:3px solid var(--royal-500);z-index:1;margin-top:20px}
+  .t-dot.done{background:var(--royal-500)}
+  .t-dot.now{background:var(--coral-500);border-color:var(--coral-500);box-shadow:0 0 0 6px var(--coral-50)}
+  .t-label{font-size:13px;letter-spacing:0.14em;text-transform:uppercase;color:var(--fg-3);font-weight:700;margin-top:8px}
+  .t-title{font-size:20px;color:var(--navy-500);font-weight:900;line-height:1.25;letter-spacing:-0.01em}
+  .t-body{font-size:15px;color:var(--fg-2);line-height:1.45;font-weight:500}
+
+  /* Lists */
+  ul.dots{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px}
+  ul.dots li{font-size:19px;color:var(--fg-2);line-height:1.45;display:flex;gap:14px;align-items:flex-start;font-weight:500}
+  ul.dots li::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--royal-500);margin-top:11px;flex:none}
+
+  ul.checks{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px}
+  ul.checks li{font-size:19px;color:var(--fg-2);line-height:1.45;display:flex;gap:14px;align-items:flex-start;font-weight:500}
+  ul.checks li::before{content:"✓";color:#1F8A5B;font-weight:900;font-size:22px;flex:none;width:22px;line-height:1.2}
+
+  /* Why grid */
+  .why-grid{display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(2,1fr);gap:24px;flex:1}
+  .why{background:var(--bg-surface);border:1px solid var(--border-1);border-radius:12px;padding:36px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:var(--shadow-sm);border-left:4px solid var(--royal-500)}
+  .why:nth-child(2){border-left-color:var(--coral-500)}
+  .why:nth-child(3){border-left-color:var(--navy-500)}
+  .why:nth-child(4){border-left-color:var(--royal-500)}
+  .why .top{display:flex;align-items:center;gap:16px}
+  .why .ico{width:48px;height:48px;border-radius:10px;background:var(--royal-50);display:grid;place-items:center;color:var(--royal-500);font-weight:900;font-size:20px}
+  .why h4{font-size:28px;margin:0;font-weight:900;color:var(--navy-500);letter-spacing:-0.01em}
+  .why p{font-size:18px;line-height:1.5;color:var(--fg-2);margin:0;font-weight:500}
+
+  /* Quote */
+  .quote{
+    border-left:4px solid var(--coral-500);padding:6px 0 6px 28px;
+    font-size:34px;line-height:1.3;color:var(--navy-500);font-weight:700;max-width:1200px;letter-spacing:-0.01em;
+  }
+
+  /* Closing */
+  .closing{background:var(--grad-hero);color:#fff;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden}
+  .closing::before{
+    content:"";position:absolute;inset:0;
+    background-image:
+      linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px);
+    background-size:80px 80px;
+  }
+  .closing::after{
+    content:"";position:absolute;width:480px;height:480px;border-radius:50%;
+    top:-160px;right:-160px;background:var(--coral-500);opacity:0.22;filter:blur(20px);
+  }
+  .closing > *{position:relative;z-index:1}
+  .closing h2{font-size:120px;line-height:0.95;font-weight:900;letter-spacing:-0.025em;color:#fff;margin:0}
+  .closing h2 b{font-weight:900;color:var(--coral-500)}
+  .closing p{color:var(--navy-100);font-size:26px;max-width:1300px;margin-top:30px;font-weight:500;line-height:1.5}
+  .closing .row{display:flex;gap:40px;margin-top:50px;flex-wrap:wrap}
+  .closing .row .item{font-size:18px;color:#fff;display:flex;align-items:center;gap:14px;letter-spacing:0.1em;text-transform:uppercase;font-weight:700}
+  .closing .row .item .b{width:8px;height:28px;background:var(--coral-500)}
+
+  /* Sec heads with rule */
+  .section-head{display:flex;align-items:flex-end;gap:36px;justify-content:space-between}
+  .section-head .num-mark{font-size:160px;font-weight:900;color:var(--royal-50);line-height:0.9;letter-spacing:-0.04em}
+
+  .mt-l{margin-top:48px}
+  .mt-m{margin-top:28px}
+
+</style>
+</head>
+<body>
+<deck-stage>
+
+<!-- SLIDE 1 — Cover -->
+<section data-screen-label="01 Portada" class="cover">
+  <div class="left">
+    <div class="top">
+      <img src="assets/logo-slep-colchagua.webp" alt="SLEP Colchagua" />
+      <div class="org">SERVICIO LOCAL DE<br/>EDUCACIÓN PÚBLICA<br/><small>Colchagua</small></div>
+    </div>
+    <h1>Portal de<br/><b>Planificación.</b></h1>
+    <div>
+      <div class="meta">Sistema de Control de Gestión Institucional</div>
+      <div class="meta" style="margin-top:8px;color:var(--royal-500)">Documento ejecutivo · Mayo 2026</div>
+    </div>
+  </div>
+  <div class="right">
+    <div class="ribbon"><span class="bar"></span> SLEP · Colchagua</div>
+    <div style="display:flex;flex-direction:column;gap:32px;position:relative;z-index:1">
+      <div class="badge">Una mirada no técnica al portal</div>
+      <div class="big">
+        Centralizar instrumentos,<br/>medir cumplimiento,<br/>ordenar la planificación<br/>institucional.
+      </div>
+    </div>
+    <div style="font-size:13px;color:var(--navy-100);letter-spacing:0.18em;text-transform:uppercase;font-weight:700;position:relative;z-index:1">
+      Construcción · Decisiones · Ecosistema
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 2 — Índice -->
+<section data-screen-label="02 Índice">
+  <div class="topbar"><div class="brand"><img src="assets/logo-slep-colchagua.webp" alt=""/><span class="name">SLEP COLCHAGUA</span></div><div>Índice</div></div>
+  <div style="margin-top:80px">
+    <div class="eyebrow-lg">Contenido</div>
+    <h2 class="title" style="margin-top:18px">¿De qué <b>vamos a hablar</b>?</h2>
+  </div>
+  <div class="toc">
+    <div class="toc-row"><div class="n">01</div><div class="t">Qué problema vinimos a resolver</div><div class="d">Contexto</div></div>
+    <div class="toc-row"><div class="n">02</div><div class="t">Objetivos del portal</div><div class="d">Para qué</div></div>
+    <div class="toc-row"><div class="n">03</div><div class="t">Cómo está estructurado</div><div class="d">Módulos</div></div>
+    <div class="toc-row"><div class="n">04</div><div class="t">Decisiones técnicas y por qué</div><div class="d">Stack</div></div>
+    <div class="toc-row"><div class="n">05</div><div class="t">Herramientas de desarrollo</div><div class="d">Cómo lo construimos</div></div>
+    <div class="toc-row"><div class="n">06</div><div class="t">Despliegue y operación</div><div class="d">Cómo se publica</div></div>
+    <div class="toc-row"><div class="n">07</div><div class="t">Estado actual y próximos pasos</div><div class="d">Hoy / mañana</div></div>
+  </div>
+  <div class="footer"><div class="accent">SLEP Colchagua</div><div>02 / 18</div></div>
+</section>
+
+<!-- SLIDE 3 — Problema -->
+<section data-screen-label="03 Problema">
+  <div class="topbar"><div class="brand"><img src="assets/logo-slep-colchagua.webp" alt=""/><span class="name">SLEP COLCHAGUA</span></div><div>01 · Contexto</div></div>
+  <div style="margin-top:70px">
+    <div class="eyebrow-lg">01 · Punto de partida</div>
+    <h2 class="title" style="margin-top:18px">El seguimiento institucional vivía<br/><b>repartido en planillas</b> sueltas.</h2>
+  </div>
+  <div class="split mt-l">
+    <div class="panel">
+      <div class="h-label">Antes del portal</div>
+      <ul class="dots" style="margin-top:8px">
+        <li>Instrumentos institucionales dispersos en varios Excel y carpetas.</li>
+        <li>Avances cargados a mano, sin trazabilidad por corte.</li>
+        <li>Difícil saber, en un día cualquiera, el cumplimiento real.</li>
+        <li>Aprobaciones, observaciones y evidencias por correo.</li>
+        <li>El reporte ejecutivo se rearmaba cada vez desde cero.</li>
+      </ul>
+    </div>
+    <div class="panel dark">
+      <div class="h-label">Lo que necesitábamos</div>
+      <div class="quote">
+        Un solo lugar donde cargar, revisar y comunicar el avance de los instrumentos del servicio.
+      </div>
+      <div style="margin-top:auto;display:flex;gap:12px;flex-wrap:wrap">
+        <span class="pill" style="background:transparent;color:#fff;border-color:rgba(255,255,255,0.25)"><span class="d" style="background:var(--coral-500)"></span> Centralizado</span>
+        <span class="pill" style="background:transparent;color:#fff;border-color:rgba(255,255,255,0.25)"><span class="d" style="background:#fff"></span> Trazable</span>
+        <span class="pill" style="background:transparent;color:#fff;border-color:rgba(255,255,255,0.25)"><span class="d" style="background:var(--royal-300)"></span> Visual</span>
+      </div>
+    </div>
+  </div>
+  <div class="footer"><div class="accent">Diagnóstico previo</div><div>03 / 18</div></div>
+</section>
+
+<!-- SLIDE 4 — Objetivos -->
+<section data-screen-label="04 Objetivos">
+  <div class="topbar"><div class="brand"><img src="assets/logo-slep-colchagua.webp" alt=""/><span class="name">SLEP COLCHAGUA</span></div><div>02 · Objetivos</div></div>
+  <div style="margin-top:70px">
+    <div class="eyebrow-lg">02 · Objetivos del portal</div>
+    <h2 class="title" style="margin-top:18px">Para qué <b>existe</b> esta plataforma.</h2>
+    <h3 class="sub" style="margin-top:24px">Cuatro propósitos guían cada módulo del portal.</h3>
+  </div>
+  <div class="why-grid mt-l">
+    <div class="why">
+      <div class="top"><div class="ico">1</div><h4>Centralizar instrumentos</h4></div>
+      <p>Concentrar en un solo lugar los instrumentos institucionales del SLEP y todos sus indicadores.</p>
+    </div>
+    <div class="why">
+      <div class="top"><div class="ico">2</div><h4>Registrar avances por corte</h4></div>
+      <p>Que cada responsable pueda cargar su avance de manera ordenada, con fecha de corte y evidencia.</p>
+    </div>
+    <div class="why">
+      <div class="top"><div class="ico">3</div><h4>Visualizar cumplimiento</h4></div>
+      <p>Mostrar el estado del servicio con semáforos, porcentajes y un dashboard ejecutivo, sin armar reportes a mano.</p>
+    </div>
+    <div class="why">
+      <div class="top"><div class="ico">4</div><h4>Aprobar u observar</h4></div>
+      <p>Permitir que la dirección revise y devuelva con observaciones, dejando la traza dentro del mismo sistema.</p>
+    </div>
+  </div>
+  <div class="footer"><div class="accent">Propósito del portal</div><div>04 / 18</div></div>
+</section>
+
+<!-- SLIDE 5 — Usuarios -->
+<section data-screen-label="05 Usuarios">
+  <div class="topbar"><div class="brand"><img src="assets/logo-slep-colchagua.webp" alt=""/><span class="name">SLEP COLCHAGUA</span></div><div>02 · Roles</div></div>
+  <div style="margin-top:70px">
+    <div class="eyebrow-lg">02 · A quién sirve</div>
+    <h2 class="title" style="margin-top:18px">Tres perfiles, <b>una sola fuente</b> de verdad.</h2>
+  </div>
+  <div class="modules" style="margin-top:50px">
+    <div class="module">
+      <div class="ico">A</div>
+      <h4>Administrador</h4>
+      <p>Configura instrumentos, indicadores, cortes y usuarios. Aprueba u observa avances. Vista total.</p>
+      <div class="tag" style="margin-top:auto">CRUD completo</div>
+    </div>
+    <div class="module">
+      <div class="ico">D</div>
+      <h4>Director ejecutivo</h4>
+      <p>Revisa avances, aprueba u observa, mira indicadores ejecutivos y el cumplimiento global del servicio.</p>
+      <div class="tag" style="margin-top:auto">Revisión y aprobación</div>
+    </div>
+    <div class="module">
+      <div class="ico">S</div>
+      <h4>Subdirector</h4>
+      <p>Carga avances de los indicadores de los que es responsable. Crea acciones operativas de su área.</p>
+      <div class="tag" style="margin-top:auto">Operación diaria</div>
+    </div>
+  </div>
+  <div class="mt-l" style="background:var(--bg-surface);border:1px solid var(--border-1);border-radius:12px;padding:24px 30px;display:flex;justify-content:space-between;align-items:center;box-shadow:var(--shadow-sm);border-left:4px solid var(--coral-500)">
+    <div style="font-size:20px;color:var(--fg-2);font-weight:500">Solo entra quien tenga correo institucional válido y esté autorizado en la hoja de usuarios.</div>
+    <div class="tag coral">Acceso controlado por correo</div>
+  </div>
+  <div class="footer"><div class="accent">Roles del sistema</div><div>05 / 18</div></div>
+</section>
+
+<!-- SLIDE 6 — Arquitectura -->
+<section data-screen-label="06 Arquitectura">
+  <div class="topbar"><div class="brand"><img src="assets/logo-slep-colchagua.webp" alt=""/><span class="name">SLEP COLCHAGUA</span></div><div>03 · Estructura</div></div>
+  <div style="margin-top:70px">
+    <div class="eyebrow-lg">03 · Cómo se estructura</div>
+    <h2 class="title" style="margin-top:18px">Tres capas que <b>conversan entre sí</b>.</h2>
+    <h3 class="sub" style="margin-top:18px">El usuario interactúa con una capa moderna, mientras el dato vive ordenado en el ecosistema Google del servicio.</h3>
+  </div>
+
+  <div class="stack mt-l">
+    <div class="layer">
+      <div class="pip" style="background:var(--navy-500)">UI</div>
+      <div>
+        <div class="ttl">Frontend · lo que ve el usuario</div>
+        <div class="sub">Pantallas, formularios, tablas y gráficos. Construido con React.</div>
+      </div>
+      <div class="meta">React · Tailwind · Recharts</div>
+    </div>
+    <div class="down">↓</div>
+    <div class="layer">
+      <div class="pip" style="background:var(--royal-500)">API</div>
+      <div>
+        <div class="ttl">Backend · reglas de negocio</div>
+        <div class="sub">Define quién puede ver, editar, aprobar y observar cada dato.</div>
+      </div>
+      <div class="meta">Google Apps Script (Web App)</div>
+    </div>
+    <div class="down">↓</div>
+    <div class="layer">
+      <div class="pip" style="background:var(--coral-500)">DB</div>
+      <div>
+        <div class="ttl">Datos · dónde queda guardado</div>
+        <div class="sub">Toda la información vive en hojas Google estructuradas. Evidencias en Drive.</div>
+      </div>
+      <div class="meta">Google Sheets · Drive</div>
+    </div>
+  </div>
+
+  <div class="footer"><div class="accent">Arquitectura de tres capas</div><div>06 / 18</div></div>
+</section>
+
+<!-- SLIDE 7 — Módulos -->
+<section data-screen-label="07 Módulos">
+  <div class="topbar"><div class="brand"><img src="assets/logo-slep-colchagua.webp" alt=""/><span class="name">SLEP COLCHAGUA</span></div><div>03 · Módulos</div></div>
+  <div style="margin-top:70px">
+    <div class="eyebrow-lg">03 · Lo que hace el portal</div>
+    <h2 class="title" style="margin-top:18px">Seis módulos <b>conectados</b> entre sí.</h2>
+  </div>
+  <div class="modules" style="margin-top:42px">
+    <div class="module">
+      <div class="ico">◐</div>
+      <h4>Dashboard</h4>
+      <p>Tarjetas por instrumento, KPIs ejecutivos, semáforos, comparativa y próximos cortes.</p>
+    </div>
+    <div class="module">
+      <div class="ico">≡</div>
+      <h4>Indicadores</h4>
+      <p>Vista global de indicadores con filtros por tipo, responsable e instrumento.</p>
+    </div>
+    <div class="module">
+      <div class="ico">▦</div>
+      <h4>Instrumento detalle</h4>
+      <p>Tabla por corte con avances, aprobación y observaciones del director ejecutivo.</p>
+    </div>
+    <div class="module">
+      <div class="ico">↑</div>
+      <h4>Ingreso de avance</h4>
+      <p>Formulario que calcula porcentaje y semáforo en vivo, con validaciones de negocio.</p>
+    </div>
+    <div class="module">
+      <div class="ico">▤</div>
+      <h4>Gantt anual</h4>
+      <p>Calendario de cortes por instrumento, con métricas por corte y plazos resaltados.</p>
+    </div>
+    <div class="module coral">
+      <div class="ico">●</div>
+      <h4>Acciones</h4>
+      <p>Capa operativa por indicador: tareas, evidencias y bitácora del equipo responsable.</p>
+    </div>
+  </div>
+  <div class="footer"><div class="accent">Módulos activos</div><div>07 / 18</div></div>
+</section>
+
+<!-- SLIDE 8 — Por qué Apps Script -->
+<section data-screen-label="08 Decisión Apps Script">
+  <div class="topbar"><div class="brand"><img src="assets/logo-slep-colchagua.webp" alt=""/><span class="name">SLEP COLCHAGUA</span></div><div>04 · Decisiones</div></div>
+  <div style="margin-top:70px">
+    <div class="eyebrow-lg">04 · La decisión clave</div>
+    <h2 class="title" style="margin-top:18px">Por qué Google Apps Script<br/>y <b>no una base de datos</b> tradicional.</h2>
+  </div>
+  <div class="split mt-l">
+    <div class="panel">
+      <div class="h-label">La pregunta</div>
+      <div style="font-size:24px;color:var(--fg-2);line-height:1.45;font-weight:500">
+        ¿Construimos un backend propio con una base de datos y servidor pagado, o aprovechamos el ecosistema Google que ya usa el SLEP a diario?
+      </div>
+      <div class="mt-m" style="display:flex;flex-direction:column;gap:12px">
+        <div class="pill"><span class="d" style="background:var(--coral-500)"></span> Costo cero en backend y base de datos</div>
+        <div class="pill"><span class="d" style="background:var(--royal-500)"></span> Vive dentro del Workspace institucional</div>
+        <div class="pill"><span class="d" style="background:var(--navy-500)"></span> Autenticación con la cuenta del servicio</div>
+        <div class="pill"><span class="d" style="background:var(--royal-300)"></span> Datos auditables y exportables</div>
+      </div>
+    </div>
+    <div class="panel dark">
+      <div class="h-label">La respuesta</div>
+      <div style="font-size:46px;line-height:1.1;color:#fff;font-weight:900;letter-spacing:-0.02em">
+        Quedarnos dentro del ecosistema <em style="color:var(--coral-500);font-style:normal">Google</em> del SLEP, sin sumar costos ni dependencias externas.
+      </div>
+      <div class="mt-m" style="font-size:19px;color:var(--navy-100);line-height:1.5;font-weight:500">
+        Apps Script publica una <em>Web App</em> que actúa como API. Google Sheets cumple el rol de base de datos: cada hoja es una tabla con su propio esquema.
+      </div>
+    </div>
+  </div>
+  <div class="footer"><div class="accent">Decisión técnica fundacional</div><div>08 / 18</div></div>
+</section>
+
+<!-- SLIDE 9 — Comparación -->
+<section data-screen-label="09 Comparación">
+  <div class="topbar"><div class="brand"><img src="assets/logo-slep-colchagua.webp" alt=""/><span class="name">SLEP COLCHAGUA</span></div><div>04 · Stack</div></div>
+  <div style="margin-top:70px">
+    <div class="eyebrow-lg">04 · Qué ganamos, qué resignamos</div>
+    <h2 class="title" style="margin-top:18px">Apps Script + Sheets<br/><b>vs. base de datos</b> tradicional.</h2>
+  </div>
+  <table class="compare">
+    <thead>
+      <tr>
+        <th>Criterio</th>
+        <th>Apps Script + Sheets <span style="color:var(--coral-500)">(elegido)</span></th>
+        <th>Base de datos tradicional</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="feat">Costo mensual</td><td class="yes">Gratuito dentro del Workspace</td><td class="no">Servidor + base de datos pagados</td></tr>
+      <tr><td class="feat">Ecosistema</td><td class="yes">Dentro del entorno institucional Google</td><td class="neutral">Servicio externo separado</td></tr>
+      <tr><td class="feat">Autenticación</td><td class="yes">Cuenta institucional ya existente</td><td class="neutral">Usuarios y contraseñas a gestionar aparte</td></tr>
+      <tr><td class="feat">Datos visibles</td><td class="yes">Sheets se leen y exportan como planilla</td><td class="no">Requiere herramientas adicionales</td></tr>
+      <tr><td class="feat">Mantenimiento</td><td class="yes">Sin servidores que administrar</td><td class="no">Requiere monitoreo y respaldos propios</td></tr>
+      <tr><td class="feat">Velocidad de cambios</td><td class="yes">Despliegue rápido desde el mismo proyecto</td><td class="neutral">Pipeline adicional de despliegue</td></tr>
+      <tr><td class="feat">Volumen muy alto</td><td class="neutral">Bueno hasta cierto volumen</td><td class="yes">Mejor a escala masiva</td></tr>
+    </tbody>
+  </table>
+  <div class="footer"><div class="accent">Análisis de alternativas</div><div>09 / 18</div></div>
+</section>
+
+<!-- SLIDE 10 — Flujo de datos -->
+<section data-screen-label="10 Flujo de datos">
+  <div class="topbar"><div class="brand"><img src="assets/logo-slep-colchagua.webp" alt=""/><span class="name">SLEP COLCHAGUA</span></div><div>04 · Flujo</div></div>
+  <div style="margin-top:70px">
+    <div class="eyebrow-lg">04 · Cómo viaja un dato</div>
+    <h2 class="title" style="margin-top:18px">De un clic del usuario,<br/>a una <b>fila en la planilla</b>.</h2>
+  </div>
+
+  <div class="grid-4" style="margin-top:50px;align-items:stretch">
+    <div class="card accent">
+      <div class="tag">1 · Usuario</div>
+      <div style="font-size:24px;font-weight:900;color:var(--navy-500);letter-spacing:-0.01em">Inicia sesión</div>
+      <p class="body">Ingresa con su cuenta institucional y carga un avance desde el formulario.</p>
+      <div style="color:var(--fg-3);font-size:13px;margin-top:auto;text-transform:uppercase;letter-spacing:0.1em;font-weight:700">Browser · React</div>
+    </div>
+    <div class="card accent">
+      <div class="tag">2 · Frontend</div>
+      <div style="font-size:24px;font-weight:900;color:var(--navy-500);letter-spacing:-0.01em">Llama al backend</div>
+      <p class="body">Valida en pantalla y llama al backend mediante una función central llamada callApi().</p>
+      <div style="color:var(--fg-3);font-size:13px;margin-top:auto;text-transform:uppercase;letter-spacing:0.1em;font-weight:700">React Query · hooks</div>
+    </div>
+    <div class="card accent">
+      <div class="tag">3 · Apps Script</div>
+      <div style="font-size:24px;font-weight:900;color:var(--navy-500);letter-spacing:-0.01em">Aplica las reglas</div>
+      <p class="body">Verifica el token, revisa el rol, aplica reglas de negocio y decide qué hacer.</p>
+      <div style="color:var(--fg-3);font-size:13px;margin-top:auto;text-transform:uppercase;letter-spacing:0.1em;font-weight:700">Web App · enrutador</div>
+    </div>
+    <div class="card coral">
+      <div class="tag coral">4 · Sheets / Drive</div>
+      <div style="font-size:24px;font-weight:900;color:var(--navy-500);letter-spacing:-0.01em">Guarda el dato</div>
+      <p class="body">Escribe la fila en la hoja correspondiente y guarda evidencias en Drive.</p>
+      <div style="color:var(--fg-3);font-size:13px;margin-top:auto;text-transform:uppercase;letter-spacing:0.1em;font-weight:700">Planillas · carpetas</div>
+    </div>
+  </div>
+
+  <div class="grid-2 mt-l">
+    <div class="card">
+      <div class="h-label">Seguridad de acceso</div>
+      <p class="body" style="font-size:19px">Cada llamada incluye el token Google del usuario. El backend rechaza correos no autorizados o roles que no corresponden a la acción.</p>
+    </div>
+    <div class="card">
+      <div class="h-label">Velocidad</div>
+      <p class="body" style="font-size:19px">El backend guarda en caché las lecturas frecuentes (dashboard, gantt, indicadores) para responder rápido sin recalcular todo.</p>
+    </div>
+  </div>
+  <div class="footer"><div class="accent">Flujo de una solicitud</div><div>10 / 18</div></div>
+</section>
+
+<!-- SLIDE 11 — Stack -->
+<section data-screen-label="11 Stack">
+  <div class="topbar"><div class="brand"><img src="assets/logo-slep-colchagua.webp" alt=""/><span class="name">SLEP COLCHAGUA</span></div><div>04 · Tecnologías</div></div>
+  <div style="margin-top:70px">
+    <div class="eyebrow-lg">04 · Tecnologías que componen el portal</div>
+    <h2 class="title" style="margin-top:18px">El stack, <b>en lenguaje claro</b>.</h2>
+  </div>
+
+  <div style="margin-top:42px">
+    <div class="h-label">Frontend · lo que se ve</div>
+    <div class="tool-row">
+      <div class="tool"><div class="glyph" style="background:var(--royal-500)">R</div><div class="role">Librería de interfaz</div><p>Construye las pantallas y reacciona a lo que el usuario hace.</p><div class="name">React</div></div>
+      <div class="tool"><div class="glyph" style="background:var(--royal-700)">≋</div><div class="role">Estilos visuales</div><p>Define apariencia, espaciado y colores de forma consistente.</p><div class="name">Tailwind CSS</div></div>
+      <div class="tool"><div class="glyph" style="background:var(--navy-500)">Q</div><div class="role">Manejo de datos</div><p>Coordina las llamadas al backend y mantiene la UI fresca.</p><div class="name">React Query</div></div>
+      <div class="tool"><div class="glyph" style="background:var(--coral-500)">▮</div><div class="role">Gráficos del dashboard</div><p>Dibuja los gráficos comparativos y de cumplimiento.</p><div class="name">Recharts</div></div>
+    </div>
+  </div>
+
+  <div style="margin-top:34px">
+    <div class="h-label">Backend, datos y autenticación · el ecosistema Google</div>
+    <div class="tool-row">
+      <div class="tool"><div class="glyph" style="background:var(--navy-500)">{ }</div><div class="role">Backend (Web App)</div><p>Aplica reglas y conecta el frontend con los datos.</p><div class="name">Google Apps Script</div></div>
+      <div class="tool"><div class="glyph" style="background:#1F8A5B">▤</div><div class="role">Base de datos</div><p>Cada hoja funciona como tabla del sistema.</p><div class="name">Google Sheets</div></div>
+      <div class="tool"><div class="glyph" style="background:#C77A00">◐</div><div class="role">Evidencias / archivos</div><p>Guarda los respaldos cargados por los responsables.</p><div class="name">Google Drive</div></div>
+      <div class="tool"><div class="glyph" style="background:var(--royal-500)">G</div><div class="role">Inicio de sesión</div><p>Login con cuenta institucional del servicio.</p><div class="name">Google OAuth</div></div>
+    </div>
+  </div>
+
+  <div class="footer"><div class="accent">Stack tecnológico</div><div>11 / 18</div></div>
+</section>
+
+<!-- SLIDE 12 — Herramientas -->
+<section data-screen-label="12 Herramientas">
+  <div class="topbar"><div class="brand"><img src="assets/logo-slep-colchagua.webp" alt=""/><span class="name">SLEP COLCHAGUA</span></div><div>05 · Herramientas</div></div>
+  <div style="margin-top:70px">
+    <div class="eyebrow-lg">05 · Cómo se construye día a día</div>
+    <h2 class="title" style="margin-top:18px">El <b>taller</b> del portal.</h2>
+    <h3 class="sub" style="margin-top:18px">Herramientas que el equipo usa para escribir, revisar y guardar el código del sistema.</h3>
+  </div>
+
+  <div class="grid-4" style="margin-top:42px">
+    <div class="card">
+      <div class="glyph" style="background:var(--royal-500);width:54px;height:54px;border-radius:12px;display:grid;place-items:center;color:#fff;font-weight:900;font-size:18px">VS</div>
+      <div style="font-size:22px;font-weight:900;color:var(--navy-500);margin-top:10px;letter-spacing:-0.01em">Visual Studio Code</div>
+      <div class="h-label alt">Editor de código</div>
+      <p class="body" style="font-size:17px">Donde se escribe, navega y prueba el código del portal. Liviano, gratuito y estándar de la industria.</p>
+    </div>
+    <div class="card">
+      <div class="glyph" style="background:var(--navy-500);width:54px;height:54px;border-radius:12px;display:grid;place-items:center;color:#fff;font-weight:900;font-size:22px">✦</div>
+      <div style="font-size:22px;font-weight:900;color:var(--navy-500);margin-top:10px;letter-spacing:-0.01em">GitHub Copilot</div>
+      <div class="h-label alt">Asistente de IA en el editor</div>
+      <p class="body" style="font-size:17px">Sugiere y completa código dentro de VS Code. Acelera tareas repetitivas y mantiene consistencia.</p>
+    </div>
+    <div class="card">
+      <div class="glyph" style="background:var(--coral-500);width:54px;height:54px;border-radius:12px;display:grid;place-items:center;color:#fff;font-weight:900;font-size:22px">⟡</div>
+      <div style="font-size:22px;font-weight:900;color:var(--navy-500);margin-top:10px;letter-spacing:-0.01em">Claude Code</div>
+      <div class="h-label alt">Asistente de IA conversacional</div>
+      <p class="body" style="font-size:17px">Apoyo para razonar, refactorizar y revisar piezas más complejas del backend y la UI.</p>
+    </div>
+    <div class="card">
+      <div class="glyph" style="background:var(--navy-700);width:54px;height:54px;border-radius:12px;display:grid;place-items:center;color:#fff;font-weight:900;font-size:22px">◉</div>
+      <div style="font-size:22px;font-weight:900;color:var(--navy-500);margin-top:10px;letter-spacing:-0.01em">GitHub</div>
+      <div class="h-label alt">Repositorio del proyecto</div>
+      <p class="body" style="font-size:17px">Almacena el historial de cambios. Permite trabajar ordenadamente, revertir errores y conectar con el despliegue.</p>
+    </div>
+  </div>
+
+  <div class="mt-l" style="background:var(--bg-surface);border:1px solid var(--border-1);border-radius:12px;padding:24px 30px;display:flex;justify-content:space-between;align-items:center;box-shadow:var(--shadow-sm);border-left:4px solid var(--coral-500)">
+    <div style="font-size:20px;color:var(--fg-2);font-weight:500">Todas las herramientas anteriores son <b style="color:var(--navy-500);font-weight:900">gratuitas o ya licenciadas</b> para el equipo, sin sumar nuevos costos al servicio.</div>
+    <div class="tag coral">Costo marginal: $0</div>
+  </div>
+
+  <div class="footer"><div class="accent">Herramientas de trabajo</div><div>12 / 18</div></div>
+</section>
+
+<!-- SLIDE 13 — Despliegue -->
+<section data-screen-label="13 Flujo de despliegue">
+  <div class="topbar"><div class="brand"><img src="assets/logo-slep-colchagua.webp" alt=""/><span class="name">SLEP COLCHAGUA</span></div><div>06 · Operación</div></div>
+  <div style="margin-top:70px">
+    <div class="eyebrow-lg">06 · Del editor al usuario</div>
+    <h2 class="title" style="margin-top:18px">Cómo viaja un cambio<br/>desde el equipo <b>hasta producción</b>.</h2>
+  </div>
+
+  <div class="timeline" style="margin-top:70px">
+    <div class="t-node">
+      <div class="t-dot done"></div>
+      <div class="t-label">Paso 1</div>
+      <div class="t-title">Escribir el cambio</div>
+      <div class="t-body">El equipo trabaja en VS Code con apoyo de Copilot y Claude Code.</div>
+    </div>
+    <div class="t-node">
+      <div class="t-dot done"></div>
+      <div class="t-label">Paso 2</div>
+      <div class="t-title">Subir a GitHub</div>
+      <div class="t-body">Cada cambio relevante queda registrado en el repositorio con su historial.</div>
+    </div>
+    <div class="t-node">
+      <div class="t-dot done"></div>
+      <div class="t-label">Paso 3</div>
+      <div class="t-title">Vercel publica</div>
+      <div class="t-body">Vercel toma el código de GitHub y publica automáticamente la nueva versión del frontend.</div>
+    </div>
+    <div class="t-node">
+      <div class="t-dot now"></div>
+      <div class="t-label">Paso 4</div>
+      <div class="t-title">Backend en Apps Script</div>
+      <div class="t-body">Los cambios del backend se copian al proyecto Apps Script y se vuelve a publicar la Web App.</div>
+    </div>
+    <div class="t-node">
+      <div class="t-dot"></div>
+      <div class="t-label">Paso 5</div>
+      <div class="t-title">Validar en ambiente real</div>
+      <div class="t-body">Se revisa con usuarios clave que el cambio funciona como se esperaba.</div>
+    </div>
+    <div class="t-node">
+      <div class="t-dot"></div>
+      <div class="t-label">Paso 6</div>
+      <div class="t-title">Comunicar</div>
+      <div class="t-body">Se informa al equipo qué cambió y cómo afecta su operación diaria.</div>
+    </div>
+  </div>
+
+  <div class="footer"><div class="accent">Pipeline de despliegue</div><div>13 / 18</div></div>
+</section>
+
+<!-- SLIDE 14 — Vercel -->
+<section data-screen-label="14 Vercel">
+  <div class="topbar"><div class="brand"><img src="assets/logo-slep-colchagua.webp" alt=""/><span class="name">SLEP COLCHAGUA</span></div><div>06 · Vercel</div></div>
+  <div style="margin-top:70px">
+    <div class="eyebrow-lg">06 · Por qué Vercel</div>
+    <h2 class="title" style="margin-top:18px">El portal se publica<br/>en <b>Vercel</b>, conectado a GitHub.</h2>
+  </div>
+
+  <div class="split mt-l">
+    <div class="panel">
+      <div class="h-label">Cómo funciona</div>
+      <ul class="dots" style="margin-top:8px">
+        <li>Vercel está conectado directamente al repositorio del portal en GitHub.</li>
+        <li>Cada vez que se sube un cambio, Vercel compila el sitio y lo deja disponible para el usuario final.</li>
+        <li>Si una versión presenta problemas, se puede volver a una anterior con un clic.</li>
+        <li>Permite previsualizar cambios antes de publicarlos al equipo completo.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <div class="h-label">Qué ganamos</div>
+      <ul class="checks" style="margin-top:8px">
+        <li>Despliegue automático, sin pasos manuales propensos a error.</li>
+        <li>HTTPS y rendimiento global incluidos por defecto.</li>
+        <li>Plan gratuito alcanza para el uso institucional actual.</li>
+        <li>Conexión directa con el flujo de GitHub que ya usamos.</li>
+      </ul>
+      <div style="margin-top:auto;display:flex;gap:12px;flex-wrap:wrap">
+        <span class="pill"><span class="d" style="background:#1F8A5B"></span> Cero costo</span>
+        <span class="pill"><span class="d" style="background:var(--royal-500)"></span> Cero servidores</span>
+        <span class="pill"><span class="d" style="background:var(--coral-500)"></span> Rollback inmediato</span>
+      </div>
+    </div>
+  </div>
+  <div class="footer"><div class="accent">Plataforma de despliegue</div><div>14 / 18</div></div>
+</section>
+
+<!-- SLIDE 15 — Seguridad -->
+<section data-screen-label="15 Seguridad">
+  <div class="topbar"><div class="brand"><img src="assets/logo-slep-colchagua.webp" alt=""/><span class="name">SLEP COLCHAGUA</span></div><div>06 · Seguridad</div></div>
+  <div style="margin-top:70px">
+    <div class="eyebrow-lg">06 · Seguridad y datos</div>
+    <h2 class="title" style="margin-top:18px">El dato vive donde <b>ya estaba protegido</b>.</h2>
+  </div>
+
+  <div class="grid-3 mt-l">
+    <div class="card accent">
+      <div class="h-label">Identidad</div>
+      <div style="font-size:26px;font-weight:900;color:var(--navy-500);letter-spacing:-0.01em">Cuenta institucional</div>
+      <p class="body" style="font-size:18px">Solo entran correos del dominio del SLEP autorizados explícitamente en la hoja de usuarios.</p>
+    </div>
+    <div class="card accent">
+      <div class="h-label">Permisos</div>
+      <div style="font-size:26px;font-weight:900;color:var(--navy-500);letter-spacing:-0.01em">Roles diferenciados</div>
+      <p class="body" style="font-size:18px">Cada acción del backend verifica el rol del usuario antes de permitir crear, editar o aprobar.</p>
+    </div>
+    <div class="card coral">
+      <div class="h-label">Resguardo</div>
+      <div style="font-size:26px;font-weight:900;color:var(--navy-500);letter-spacing:-0.01em">Workspace Google</div>
+      <p class="body" style="font-size:18px">Los datos y archivos quedan en el entorno Google del servicio, con su respaldo, control y trazabilidad.</p>
+    </div>
+  </div>
+
+  <div class="mt-l" style="background:var(--grad-deep-blue);color:#fff;border-radius:12px;padding:36px 44px;display:flex;gap:40px;align-items:center;box-shadow:var(--shadow-md)">
+    <div style="font-size:40px;font-weight:900;line-height:1.15;flex:1;letter-spacing:-0.015em">
+      No movimos los datos del SLEP a un proveedor externo. Los <em style="color:var(--coral-500);font-style:normal">ordenamos</em> donde ya vivían.
+    </div>
+  </div>
+  <div class="footer"><div class="accent">Modelo de seguridad</div><div>15 / 18</div></div>
+</section>
+
+<!-- SLIDE 16 — Estado actual -->
+<section data-screen-label="16 Estado actual">
+  <div class="topbar"><div class="brand"><img src="assets/logo-slep-colchagua.webp" alt=""/><span class="name">SLEP COLCHAGUA</span></div><div>07 · Estado</div></div>
+  <div style="margin-top:70px">
+    <div class="eyebrow-lg">07 · Estado actual</div>
+    <h2 class="title" style="margin-top:18px">Dónde estamos <b>hoy</b>.</h2>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="v">4.5</div><div class="l">Fases completadas</div></div>
+    <div class="stat"><div class="v">6</div><div class="l">Módulos funcionales</div></div>
+    <div class="stat"><div class="v">3</div><div class="l">Roles institucionales</div></div>
+    <div class="stat"><div class="v" style="color:var(--coral-500)">$0</div><div class="l">Costo de infraestructura</div></div>
+  </div>
+
+  <div class="grid-2 mt-l">
+    <div class="panel">
+      <div class="h-label">Listo y operativo</div>
+      <ul class="checks" style="margin-top:8px">
+        <li>Login con cuenta Google institucional.</li>
+        <li>Dashboard ejecutivo con KPIs, semáforos y exportación.</li>
+        <li>Vista global de indicadores con filtros.</li>
+        <li>Carga, aprobación y observación de avances por corte.</li>
+        <li>Gantt anual con plazos resaltados.</li>
+        <li>Módulo Acciones con bitácora y evidencias en Drive.</li>
+        <li>Panel de administración para mantener instrumentos, indicadores y usuarios.</li>
+      </ul>
+    </div>
+    <div class="panel" style="background:var(--neutral-100)">
+      <div class="h-label">En camino</div>
+      <ul class="dots" style="margin-top:8px">
+        <li><b style="color:var(--navy-500)">Fase 5</b> — Correos automáticos de recordatorio antes de cada corte.</li>
+        <li><b style="color:var(--navy-500)">Fase 6</b> — Pruebas finales por rol y estabilización del despliegue.</li>
+        <li>Edición visual completa de acciones desde la interfaz.</li>
+        <li>Dominio personalizado del SLEP para el portal en producción.</li>
+        <li>Capacitación operativa al equipo del servicio.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer"><div class="accent">Foto de hoy</div><div>16 / 18</div></div>
+</section>
+
+<!-- SLIDE 17 — En una línea -->
+<section data-screen-label="17 En una línea">
+  <div class="topbar"><div class="brand"><img src="assets/logo-slep-colchagua.webp" alt=""/><span class="name">SLEP COLCHAGUA</span></div><div>Síntesis</div></div>
+  <div style="margin-top:70px">
+    <div class="eyebrow-lg">En una línea</div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;margin-top:-40px">
+    <div style="font-size:84px;line-height:1.05;font-weight:900;color:var(--navy-500);max-width:1620px;letter-spacing:-0.025em">
+      Una plataforma propia del SLEP Colchagua,<br/>
+      construida sobre su <em style="color:var(--royal-500);font-style:normal">propio ecosistema Google</em>,<br/>
+      sin sumar costos ni proveedores externos.
+    </div>
+    <div class="mt-l" style="display:flex;gap:12px;flex-wrap:wrap">
+      <span class="tag">React + Tailwind</span>
+      <span class="tag">Google Apps Script</span>
+      <span class="tag">Google Sheets · Drive</span>
+      <span class="tag">Google OAuth</span>
+      <span class="tag coral">VS Code · Copilot · Claude Code</span>
+      <span class="tag coral">GitHub → Vercel</span>
+    </div>
+  </div>
+  <div class="footer"><div class="accent">Síntesis ejecutiva</div><div>17 / 18</div></div>
+</section>
+
+<!-- SLIDE 18 — Cierre -->
+<section data-screen-label="18 Cierre" class="closing">
+  <div>
+    <div style="display:flex;align-items:center;gap:14px;color:#fff;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;font-size:14px"><span style="width:36px;height:4px;background:var(--coral-500)"></span> SLEP Colchagua</div>
+    <h2 style="margin-top:30px">Portal de<br/><b>Planificación.</b></h2>
+    <p>Una herramienta hecha a medida del servicio, que ordena el seguimiento institucional sin alejarse del ecosistema que el SLEP ya conoce y usa todos los días.</p>
+    <div class="row">
+      <div class="item"><div class="b"></div> Gracias</div>
+      <div class="item"><div class="b"></div> Preguntas</div>
+      <div class="item"><div class="b"></div> Próximos pasos</div>
+    </div>
+  </div>
+</section>
+
+</deck-stage>
+</body>
+</html>

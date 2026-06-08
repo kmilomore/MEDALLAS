@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx vite *)",
+      "Read(//tmp/**)",
+      "Skill(run)",
+      "Skill(run:*)",
+      "Read(//usr/local/**)",
+      "Bash(npx --yes playwright --version)",
+      "Bash(npx playwright *)"
+    ]
+  }
+}

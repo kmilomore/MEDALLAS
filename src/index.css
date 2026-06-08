@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Museo Sans";
+  src: url("/fonts/MuseoSans-100.woff") format("woff");
+  font-weight: 100 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Museo Sans";
+  src: url("/fonts/MuseoSans-500.woff") format("woff");
+  font-weight: 400 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Museo Sans";
+  src: url("/fonts/MuseoSans-700.woff") format("woff");
+  font-weight: 600 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Museo Sans";
+  src: url("/fonts/MuseoSans-900.woff") format("woff");
+  font-weight: 800 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: "Museo Sans", system-ui, "Segoe UI", Roboto, sans-serif;
+
+  /* Navy scale — institutional dominant */
+  --color-navy-50: #EEF0F7;
+  --color-navy-100: #D4D8E9;
+  --color-navy-200: #A9B1D2;
+  --color-navy-300: #7B85B6;
+  --color-navy-400: #525E96;
+  --color-navy-500: #25306B;
+  --color-navy-600: #1F2A5E;
+  --color-navy-700: #182250;
+  --color-navy-800: #131B40;
+  --color-navy-900: #0C122C;
+
+  /* Royal blue scale — interactive / accent */
+  --color-royal-50: #E5F2FB;
+  --color-royal-100: #BFDEF4;
+  --color-royal-200: #8FC4EA;
+  --color-royal-300: #56A6DE;
+  --color-royal-400: #208ECF;
+  --color-royal-500: #006BB9;
+  --color-royal-600: #005FA5;
+  --color-royal-700: #004F8A;
+  --color-royal-800: #003E6C;
+  --color-royal-900: #002A4C;
+
+  /* Coral red scale — alert / emphasis */
+  --color-coral-50: #FFE5E9;
+  --color-coral-100: #FFC1C9;
+  --color-coral-200: #FF8E9D;
+  --color-coral-300: #FF5C73;
+  --color-coral-400: #FF3855;
+  --color-coral-500: #FF1D3D;
+  --color-coral-600: #E5142F;
+  --color-coral-700: #BD0E25;
+  --color-coral-800: #94081B;
+  --color-coral-900: #6C0413;
+
+  /* Cool neutrals */
+  --color-neutral-0: #FFFFFF;
+  --color-neutral-50: #F7F9FC;
+  --color-neutral-100: #EDF0F5;
+  --color-neutral-200: #DDE3EC;
+  --color-neutral-300: #C2CAD7;
+  --color-neutral-400: #97A0B2;
+  --color-neutral-500: #6A7388;
+  --color-neutral-600: #4A5266;
+  --color-neutral-700: #323A4D;
+  --color-neutral-800: #1F2638;
+  --color-neutral-900: #11162A;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-neutral-100);
+  color: var(--color-navy-500);
+  font-family: var(--font-sans);
+  font-weight: 500;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}

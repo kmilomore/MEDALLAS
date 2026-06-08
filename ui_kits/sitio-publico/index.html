@@ -1,0 +1,266 @@
+<!doctype html>
+<!-- @dsCard group="UI Kit — Sitio Publico" name="Sitio Público · UI Kit" subtitle="Click-through institucional · home / noticia / trámites / sobre" viewport="1400x900" -->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>SLEP Colchagua · Sitio Público (UI Kit)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="kit.css">
+<style>
+  /* Hide the on-page nav links from triggering full reload, keep clean look */
+  body.kit { background: var(--neutral-100); }
+</style>
+</head>
+<body class="kit">
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="Masthead.jsx"></script>
+<script type="text/babel" src="Hero.jsx"></script>
+<script type="text/babel" src="Cards.jsx"></script>
+
+<script type="text/babel">
+const { useState } = React;
+
+// Icons (inline so we don't depend on a CDN race)
+const Icon = {
+  graduationCap: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6"/><path d="M2 10 12 5l10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+  ),
+  fileText: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></svg>
+  ),
+  shield: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+  ),
+  megaphone: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 11 18-5v12L3 14z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+  ),
+  book: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+  ),
+  users: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+  ),
+  building: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v8h4"/><path d="M18 9h2a2 2 0 0 1 2 2v11h-4"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>
+  ),
+  alert: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.7 16.5-9-15.5a2 2 0 0 0-3.5 0l-9 15.5A2 2 0 0 0 2 19.5h18a2 2 0 0 0 1.7-3z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+  ),
+};
+
+/* ====================== PAGES ====================== */
+
+function HomePage({ onGoArticle, onGoServices }) {
+  const news = [
+    { tone: "info",    label: "Comunicado",       date: "10 mar 2026", title: "Inicio del año escolar 2026 en Colchagua", summary: "Más de 22.000 estudiantes regresan a las aulas de los 68 establecimientos del territorio. Conoce las prioridades del año académico.", featured: true },
+    { tone: "coral",   label: "Convocatoria",     date: "06 mar 2026", title: "Jornada territorial para equipos directivos", summary: "Encuentro presencial el 22 de marzo con foco en convivencia escolar y trayectoria educativa." },
+    { tone: "success", label: "Logro",            date: "28 feb 2026", title: "Escuela G-32 obtiene certificación de excelencia", summary: "Reconocimiento del Mineduc al desempeño pedagógico sostenido durante 2025." },
+    { tone: "neutral", label: "Resolución",       date: "20 feb 2026", title: "Plan de mejoramiento educativo aprobado", summary: "Lineamientos pedagógicos y de gestión para el periodo 2026 – 2027." },
+    { tone: "coral",   label: "Urgente",          date: "15 feb 2026", title: "Modificación de horarios de atención ciudadana", summary: "La atención presencial se reduce a horario de mañana durante la primera semana de marzo." },
+  ];
+
+  const services = [
+    { icon: Icon.graduationCap, title: "Postulación SAE 2027", desc: "Sistema de Admisión Escolar para jardines, escuelas y liceos.", status: {tone: "coral",   label: "Abierto"} },
+    { icon: Icon.fileText,      title: "Certificados escolares", desc: "Solicita certificados de alumno regular, notas y promoción.", status: {tone: "info",    label: "En línea"} },
+    { icon: Icon.shield,        title: "Convivencia escolar",    desc: "Protocolos, denuncias y acompañamiento a comunidades.", status: {tone: "info",    label: "Disponible"} },
+    { icon: Icon.megaphone,     title: "Comunicar una situación", desc: "Canal directo para apoderados, docentes y estudiantes.", status: {tone: "success", label: "24/7"} },
+    { icon: Icon.book,          title: "Solicitud de información", desc: "Ley de Transparencia · responde en hasta 20 días hábiles.", status: {tone: "neutral", label: "Transparencia"} },
+    { icon: Icon.building,      title: "Establecimientos",       desc: "Directorio de los 31 jardines, escuelas y liceos del territorio.", status: null },
+  ];
+
+  return (
+    <>
+      <Hero
+        eyebrow="Servicio Local de Educación Pública"
+        title="Una educación pública de calidad para Colchagua"
+        lead="Administramos los jardines infantiles, escuelas y liceos públicos del territorio, junto a familias, equipos docentes y autoridades locales de las cuatro comunas que conforman el territorio de Colchagua."
+        primaryCta="Conocer el Servicio"
+        secondaryCta="Postular a una escuela"
+        onPrimary={onGoArticle}
+        stats={[
+          { n: "68",  l: "Establecimientos" },
+          { n: "4",   l: "Comunas del territorio" },
+          { n: "22k", l: "Estudiantes" },
+          { n: "2.5k", l: "Docentes y asistentes" },
+        ]}
+      />
+
+      <section className="block">
+        <div className="block-head">
+          <div>
+            <span className="eyebrow">Sala de prensa</span>
+            <h2>Noticias y comunicados</h2>
+            <div className="sub">Información oficial dirigida a comunidades educativas, familias y al público en general.</div>
+          </div>
+          <a className="btn secondary" href="#">Ver todas las noticias</a>
+        </div>
+        <div className="news-grid">
+          <NewsCard featured category={{tone: news[0].tone, label: news[0].label}} date={news[0].date} title={news[0].title} summary={news[0].summary} onOpen={onGoArticle} />
+          <NewsCard category={{tone: news[1].tone, label: news[1].label}} date={news[1].date} title={news[1].title} summary={news[1].summary} onOpen={onGoArticle} />
+          <NewsCard category={{tone: news[2].tone, label: news[2].label}} date={news[2].date} title={news[2].title} summary={news[2].summary} onOpen={onGoArticle} />
+        </div>
+      </section>
+
+      <div className="services-band">
+        <section className="block" style={{padding: "56px 32px"}}>
+          <div className="block-head">
+            <div>
+              <span className="eyebrow">Trámites en línea</span>
+              <h2>Servicios para la comunidad</h2>
+              <div className="sub">Realiza tus trámites de forma 100 % gratuita en cualquier momento del día.</div>
+            </div>
+            <a className="btn secondary" href="#" onClick={(e) => { e.preventDefault(); onGoServices(); }}>Ver todos los trámites</a>
+          </div>
+          <div className="services-grid">
+            {services.map((s, i) => (
+              <ServiceCard key={i} icon={s.icon} title={s.title} description={s.desc} status={s.status} onOpen={onGoServices} />
+            ))}
+          </div>
+        </section>
+      </div>
+    </>
+  );
+}
+
+function ArticlePage({ onBack }) {
+  return (
+    <>
+      <div style={{background: "linear-gradient(135deg, #25306B 0%, #2C3D9E 100%)", height: 220 }}/>
+      <article className="article">
+        <div className="breadcrumb">
+          <a href="#" onClick={(e) => { e.preventDefault(); onBack(); }}>Inicio</a> · <a href="#">Noticias</a> · <span>Inicio del año escolar 2026</span>
+        </div>
+        <span className="chip chip-info">Comunicado oficial</span>
+        <h1>Inicio del año escolar 2026 en Colchagua</h1>
+        <p className="lede">Más de 22.000 estudiantes regresan a las aulas de los 68 establecimientos administrados por el Servicio Local de Educación Pública de Colchagua, marcando el comienzo de un año académico con énfasis en convivencia y trayectoria educativa.</p>
+        <div className="by"><span>Dirección de Comunicaciones</span><span>·</span><span>10 de marzo de 2026</span><span>·</span><span>4 min de lectura</span></div>
+
+        <p>El Servicio Local informa a la comunidad que el año escolar 2026 inicia oficialmente con la apertura de los 68 establecimientos del territorio, distribuidos en las cuatro comunas que conforman la provincia de Colchagua.</p>
+
+        <h2>Prioridades del año académico</h2>
+        <p>Las cuatro prioridades del plan estratégico 2026 son: fortalecer las trayectorias educativas, asegurar la convivencia escolar, mejorar los aprendizajes en lectura y matemáticas, y consolidar el trabajo territorial con comunas y municipios.</p>
+
+        <blockquote>"Una educación pública de calidad solo es posible cuando trabajamos junto a las familias, las y los docentes, y las autoridades locales."</blockquote>
+
+        <p>El director ejecutivo del SLEP destacó que durante este periodo se priorizará la inversión en infraestructura, el acompañamiento pedagógico a los equipos directivos y el fortalecimiento de los equipos de convivencia escolar en cada establecimiento.</p>
+
+        <h2>Próximos hitos</h2>
+        <p>Durante marzo se realizarán jornadas territoriales con equipos directivos y consejos escolares. En abril se publica el Plan Anual de Desarrollo Educativo Municipal (PADEM) actualizado, y en mayo comienza el periodo de matrícula complementaria.</p>
+      </article>
+    </>
+  );
+}
+
+function ServicesPage({ onBack }) {
+  const [filter, setFilter] = useState("Todos");
+  const all = [
+    { icon: Icon.graduationCap, title: "Postulación al SAE 2027",        desc: "Sistema de Admisión Escolar para postular a jardines, escuelas y liceos.", tag: "Familias", status: {tone: "coral", label: "Periodo abierto"} },
+    { icon: Icon.fileText,      title: "Certificado de alumno regular", desc: "Documento oficial que acredita la matrícula vigente.", tag: "Familias", status: {tone: "info", label: "En línea · 5 min"} },
+    { icon: Icon.fileText,      title: "Certificado de notas",          desc: "Acta de calificaciones del año cursado.", tag: "Familias", status: {tone: "info", label: "En línea · 5 min"} },
+    { icon: Icon.shield,        title: "Denuncia de convivencia escolar", desc: "Canal para denuncias por hechos que afecten la convivencia.", tag: "Comunidades", status: {tone: "success", label: "Activo 24/7"} },
+    { icon: Icon.book,          title: "Solicitud de información (Ley 20.285)", desc: "Acceso a información pública del SLEP.", tag: "Transparencia", status: {tone: "neutral", label: "20 días hábiles"} },
+    { icon: Icon.users,         title: "Postulación a cargos docentes", desc: "Concursos públicos vigentes para docentes y asistentes.", tag: "Docentes", status: {tone: "warning", label: "Próximamente"} },
+    { icon: Icon.megaphone,     title: "Reclamos y sugerencias",        desc: "Atención de OIRS · respuesta en hasta 15 días hábiles.", tag: "Familias", status: {tone: "info", label: "En línea"} },
+    { icon: Icon.building,      title: "Solicitud de uso de espacios",  desc: "Reserva de salones y multiusos en establecimientos.", tag: "Comunidades", status: {tone: "neutral", label: "Por establecimiento"} },
+  ];
+  const tags = ["Todos", "Familias", "Comunidades", "Docentes", "Transparencia"];
+  const list = filter === "Todos" ? all : all.filter((s) => s.tag === filter);
+  return (
+    <div className="services-page">
+      <div className="breadcrumb"><a href="#" onClick={(e) => { e.preventDefault(); onBack(); }}>Inicio</a> · <span>Trámites</span></div>
+      <span className="eyebrow">Trámites en línea</span>
+      <h2>Servicios para la comunidad</h2>
+      <p className="sub">Realiza tus trámites con SLEP Colchagua 100 % en línea, de forma gratuita. Si necesitas atención presencial, ubícanos en San Fernando.</p>
+      <div className="filters">
+        {tags.map((t) => (
+          <button key={t} className={"filter" + (filter === t ? " active" : "")} onClick={() => setFilter(t)}>{t}</button>
+        ))}
+      </div>
+      <div className="service-list">
+        {list.map((s, i) => (
+          <ServiceCard key={i} icon={s.icon} title={s.title} description={s.desc} status={s.status} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AboutPage({ onBack }) {
+  return (
+    <>
+      <div style={{background: "linear-gradient(135deg, #25306B 0%, #006BB9 100%)", padding: "56px 32px"}}>
+        <div style={{maxWidth: 1200, margin: "0 auto", color: "#fff"}}>
+          <div className="breadcrumb" style={{color: "rgba(255,255,255,0.7)"}}><a href="#" onClick={(e) => { e.preventDefault(); onBack(); }} style={{color: "#fff"}}>Inicio</a> · <span>Sobre el Servicio</span></div>
+          <span className="eyebrow on-dark" style={{color: "rgba(255,255,255,0.85)"}}>Quiénes somos</span>
+          <h1 style={{fontSize: 44, fontWeight: 900, letterSpacing: "-0.025em", color: "#fff", margin: "8px 0 12px"}}>El Servicio Local de Educación Pública</h1>
+          <p style={{fontSize: 17, color: "rgba(237,240,245,0.92)", maxWidth: 720, lineHeight: 1.55, fontWeight: 500}}>Somos el organismo público descentralizado creado por la Ley 21.040 para administrar la educación pública del territorio de Colchagua, en la Región del Libertador Bernardo O'Higgins.</p>
+        </div>
+      </div>
+      <div className="about-band">
+        <div className="about-inner">
+          <div>
+            <span className="eyebrow">Nuestra misión</span>
+            <h2>Garantizar el derecho a una educación pública de calidad</h2>
+            <p>Trabajamos junto a las comunidades educativas para asegurar trayectorias educativas significativas, inclusivas y pertinentes al territorio. Articulamos esfuerzos con autoridades locales, MINEDUC y la Dirección de Educación Pública.</p>
+            <p>Nuestro territorio comprende los jardines infantiles, escuelas y liceos públicos de las cuatro comunas de la provincia de Colchagua, administrando un total de 68 establecimientos educacionales.</p>
+          </div>
+          <div>
+            <span className="eyebrow">Equipo directivo</span>
+            <h2 style={{marginBottom: 18}}>Liderazgo institucional</h2>
+            <div className="leaders">
+              {[
+                { name: "Directora Ejecutiva", role: "Dirección ejecutiva" },
+                { name: "Subdirección de Educación", role: "Pedagogía" },
+                { name: "Subdirección de Administración y Finanzas", role: "Gestión" },
+                { name: "Subdirección de Planificación", role: "Estrategia" },
+                { name: "Subdirección Jurídica", role: "Asuntos legales" },
+                { name: "Unidad de Comunicaciones", role: "Vinculación" },
+              ].map((p, i) => (
+                <div className="leader" key={i}>
+                  <div className="avatar" />
+                  <div>
+                    <div className="name">{p.name}</div>
+                    <div className="role">{p.role}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* ====================== APP ====================== */
+
+function App() {
+  const [page, setPage] = useState("Inicio");
+
+  return (
+    <div className="app">
+      <Masthead active={page} onNav={setPage} />
+      <main>
+        {page === "Inicio" && (
+          <HomePage onGoArticle={() => setPage("Noticias")} onGoServices={() => setPage("Trámites")} />
+        )}
+        {page === "Noticias" && <ArticlePage onBack={() => setPage("Inicio")} />}
+        {page === "Trámites" && <ServicesPage onBack={() => setPage("Inicio")} />}
+        {page === "Sobre el Servicio" && <AboutPage onBack={() => setPage("Inicio")} />}
+        {page === "Comunidades educativas" && <AboutPage onBack={() => setPage("Inicio")} />}
+        {page === "Transparencia" && <ServicesPage onBack={() => setPage("Inicio")} />}
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
