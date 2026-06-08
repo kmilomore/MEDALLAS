@@ -199,50 +199,58 @@ export default function AdminUsersModal({ onClose }: AdminUsersModalProps) {
               <p className="text-sm font-medium text-neutral-500">Aún no hay usuarios administradores registrados.</p>
             ) : (
               <div className="overflow-hidden rounded-lg border border-neutral-200">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-neutral-100 font-bold uppercase tracking-wider text-neutral-600">
-                    <tr>
-                      <th className="px-3 py-2">Correo electrónico</th>
-                      <th className="px-3 py-2">Nombre</th>
-                      <th className="px-3 py-2">Cargo</th>
-                      <th className="px-3 py-2">Estado</th>
-                      <th className="px-3 py-2 text-right">Acción</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-200">
-                    {admins.map((admin) => {
-                      const adminEmail = field(admin, EMAIL_KEY)
-                      const isActive = /^s/i.test(field(admin, ACTIVE_KEY) || 'sí')
-                      return (
-                        <tr key={adminEmail}>
-                          <td className="px-3 py-2 font-bold text-navy-700">{adminEmail}</td>
-                          <td className="px-3 py-2 font-medium text-neutral-700">{field(admin, NAME_KEY) || '—'}</td>
-                          <td className="px-3 py-2 font-medium text-neutral-700">{field(admin, ROLE_KEY) || '—'}</td>
-                          <td className="px-3 py-2">
-                            <span
-                              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${
-                                isActive ? 'bg-[#E3F5EB] text-[#1F8A5B]' : 'bg-neutral-200 text-neutral-600'
-                              }`}
-                            >
-                              <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                              {isActive ? 'Activo' : 'Inactivo'}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2 text-right">
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveAdmin(adminEmail)}
-                              disabled={removingEmail === adminEmail}
-                              className="text-xs font-bold text-coral-600 transition hover:text-coral-700 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              {removingEmail === adminEmail ? 'Eliminando…' : 'Eliminar'}
-                            </button>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[640px] text-left text-xs">
+                    <thead className="bg-neutral-100 font-bold uppercase tracking-wider text-neutral-600">
+                      <tr>
+                        <th className="px-3 py-2">Correo electrónico</th>
+                        <th className="px-3 py-2">Nombre</th>
+                        <th className="px-3 py-2">Cargo</th>
+                        <th className="px-3 py-2">Estado</th>
+                        <th className="px-3 py-2 text-right">Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-200">
+                      {admins.map((admin) => {
+                        const adminEmail = field(admin, EMAIL_KEY)
+                        const isActive = /^s/i.test(field(admin, ACTIVE_KEY) || 'sí')
+                        return (
+                          <tr key={adminEmail}>
+                            <td className="max-w-[220px] truncate px-3 py-2.5 font-bold text-navy-700" title={adminEmail}>
+                              {adminEmail}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-2.5 font-medium text-neutral-700">
+                              {field(admin, NAME_KEY) || '—'}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-2.5 font-medium text-neutral-700">
+                              {field(admin, ROLE_KEY) || '—'}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-2.5">
+                              <span
+                                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                                  isActive ? 'bg-[#E3F5EB] text-[#1F8A5B]' : 'bg-neutral-200 text-neutral-600'
+                                }`}
+                              >
+                                <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                                {isActive ? 'Activo' : 'Inactivo'}
+                              </span>
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-2.5 text-right">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveAdmin(adminEmail)}
+                                disabled={removingEmail === adminEmail}
+                                className="text-xs font-bold text-coral-600 transition hover:text-coral-700 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {removingEmail === adminEmail ? 'Eliminando…' : 'Eliminar'}
+                              </button>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>
