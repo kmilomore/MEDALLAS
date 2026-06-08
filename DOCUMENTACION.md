@@ -95,28 +95,37 @@ MEDALLAS/
 4. Si el correo no está registrado en ninguna base, se muestra un mensaje de "no
    autorizado" con la posibilidad de cerrar sesión.
 
-### 3.2 Equipo administrativo (`/admin`)
+### 3.2 Equipo administrativo (`/admin`) — layout tipo CRM con menú lateral
 
 [AdminDashboard.tsx](src/components/AdminDashboard.tsx) muestra, una vez autenticado
-un correo con perfil `admin`:
+un correo con perfil `admin`, un layout de **dos columnas estilo CRM**: una barra
+lateral fija de navegación a la izquierda (`<aside>`, colapsa a una barra horizontal
+con scroll en mobile vía `lg:hidden`/`hidden lg:flex`) y el contenido de la sección
+activa a la derecha. El estado `activeSection: 'resumen' | 'solicitudes' | 'auditoria'`
+controla qué bloque se renderiza — toda la carga de datos (`loadAll`, `useMemo`s,
+filtros, exportación CSV, `handleChangeStatus`) se mantiene igual que antes; **solo
+cambia dónde se renderiza cada bloque** según la sección elegida, evitando duplicar
+fetches.
 
-- **KPIs**: total de establecimientos, cuántos respondieron, pendientes, % de avance,
-  total de reconocimientos solicitados y desglose por tipo (medallas, galvanos, etc.)
-- **Gráficos** (Recharts): reconocimientos por tipo, solicitudes por comuna,
-  distribución por dimensión.
-- **Filtros** ([FiltersPanel.tsx](src/components/FiltersPanel.tsx)): por comuna,
-  estado de revisión, tipo de reconocimiento, dimensión, subdimensión y búsqueda
-  libre por establecimiento/RBD/correo.
-- **Tabla de solicitudes** ([RequestsTable.tsx](src/components/RequestsTable.tsx)):
-  cada fila se puede expandir para ver el detalle de los reconocimientos solicitados,
-  y permite cambiar el estado de revisión (`Recibido`, `En revisión`, `Validado`,
-  `Observado`, `Cerrado`) directamente desde un selector con badge de color.
-- **Exportación a CSV consolidado** (botón "Exportar CSV consolidado", usa
-  [csvExport.ts](src/utils/csvExport.ts)).
-- **Tablas consolidadas**: por establecimiento y por tipo de reconocimiento.
-- **Botón "Usuarios administradores"**: abre
+- **Barra lateral**: logo/nombre del sistema, lista de navegación (`Resumen`,
+  `Solicitudes`, `Auditoría` — ítem activo con fondo `royal-50`/texto `royal-700`,
+  inactivo en `neutral-500`), y abajo accesos directos a "Portal de directores" y
+  "Cerrar sesión".
+- **Sección "Resumen"**: KPIs (total de establecimientos, cuántos respondieron,
+  pendientes, % de avance, total de reconocimientos solicitados y desglose por tipo),
+  gráficos (Recharts: reconocimientos por tipo, solicitudes por comuna, distribución
+  por dimensión) y las tablas consolidadas (por establecimiento y por tipo de
+  reconocimiento).
+- **Sección "Solicitudes"**: filtros ([FiltersPanel.tsx](src/components/FiltersPanel.tsx):
+  por comuna, estado de revisión, tipo de reconocimiento, dimensión, subdimensión y
+  búsqueda libre) + tabla de solicitudes ([RequestsTable.tsx](src/components/RequestsTable.tsx),
+  con detalle expandible y cambio de estado de revisión vía selector con badge de
+  color) + botón "Exportar CSV consolidado" (usa [csvExport.ts](src/utils/csvExport.ts)).
+- **Sección "Auditoría"**: [AuditLogView.tsx](src/components/AuditLogView.tsx) — ver
+  sección 3.7.
+- **Botón "Usuarios administradores"** (en el encabezado de la sección): abre
   [AdminUsersModal.tsx](src/components/AdminUsersModal.tsx) — ver sección 3.3.
-- **Botón "Ver formulario de directores"**: abre
+- **Botón "Ver formulario de directores"** (en el encabezado de la sección): abre
   [FormPreviewModal.tsx](src/components/FormPreviewModal.tsx) — ver sección 3.4.
 
 Si el correo autenticado **no** tiene perfil admin, se muestra `NotAuthorizedScreen`
@@ -196,6 +205,49 @@ con sus iniciales.
 > `AdminAccountNotice`: `{name ? ... : ...}`), y las iniciales del avatar se calculan
 > a partir del correo.
 
+### 3.7 Sistema de auditoría — quién ingresó, cuándo y qué hizo
+
+Registra en una hoja dedicada (`Auditoria`, ver sección 6.1) cada inicio de sesión y
+cada acción relevante realizada en la plataforma: correo, nombre, rol, fecha/hora
+(generada en el **servidor**, no en el cliente, para que sea confiable), tipo de
+acción y un detalle libre.
+
+- **Acción centralizada (`registrarEvento` / `getAuditoria`)**: las funciones de
+  backend que mutan datos (`createRequest`, `updateRequestStatus`, `createAdmin`,
+  `deleteAdmin`, etc.) no reciben hoy la identidad de quien ejecuta la acción — ese
+  contexto vive solo en `AuthContext` del frontend. En vez de pasar ese dato a través
+  de cada función existente (invasivo y riesgoso para la compatibilidad), se agregó
+  **una única acción genérica de auditoría** que el frontend llama explícitamente en
+  cada punto relevante, con los datos de la sesión activa (`auth.email`, `auth.name`,
+  `auth.role`).
+- **Helper `logEvent`** ([utils/audit.ts](src/utils/audit.ts)): arma el payload
+  (`email`, `nombre`, `rol`, `accion`, `detalle?`) y llama a `registrarEvento` de
+  forma **"fire-and-forget"** (`void registrarEvento(...).catch(() => {})`) — si el
+  registro falla, no bloquea ni rompe el flujo principal del usuario, igual que el
+  criterio ya usado para "el detalle es complementario" en `loadAllDetails`.
+- **Puntos de enganche actuales**:
+  - **Inicio de sesión** ([context/AuthContext.tsx](src/context/AuthContext.tsx),
+    `signInWithGoogleCredential`): `'Inicio de sesión'`, con el establecimiento (rol
+    `director`) o el cargo (rol `admin`) como detalle.
+  - **Creación de solicitud** ([components/DirectorPortal.tsx](src/components/DirectorPortal.tsx),
+    `handleConfirmSubmit`): `'Creó una solicitud de reconocimientos'`, detalle =
+    `id_solicitud`.
+  - **Cambio de estado de una solicitud** ([components/AdminDashboard.tsx](src/components/AdminDashboard.tsx),
+    `handleChangeStatus`): `'Cambió el estado de una solicitud'`, detalle =
+    `"<id_solicitud>: <estado anterior> → <estado nuevo>"`.
+  - **Alta/baja de usuarios administradores** ([components/AdminUsersModal.tsx](src/components/AdminUsersModal.tsx),
+    `handleAddAdmin`/`handleRemoveAdmin`): `'Creó un usuario administrador'` /
+    `'Eliminó un usuario administrador'`, detalle = correo del admin afectado.
+- **Vista "Auditoría"** ([components/AuditLogView.tsx](src/components/AuditLogView.tsx)):
+  sección del panel admin (ver 3.2) que carga `getAuditoria()` y muestra una tabla
+  (Fecha y hora, Correo, Nombre, Rol con badge de color, Acción, Detalle), ordenada
+  de más reciente a más antiguo, con búsqueda libre por cualquiera de esos campos
+  — mismo patrón visual que `RequestsTable`/`AdminUsersModal`.
+
+> Para extender el sistema (registrar nuevas acciones), basta con llamar a
+> `logEvent({ email, name, role }, 'Descripción de la acción', detalleOpcional)` en
+> el punto del frontend donde ocurre — no es necesario tocar `Code.gs`.
+
 ---
 
 ## 4. Tipos y datos compartidos
@@ -218,6 +270,9 @@ Definidos en [types/index.ts](src/types/index.ts):
   `RequestDetail` conserva `subdimension_otro` (solo para mostrar/exportar datos
   históricos previos a la migración al PME) y agrega `codigo_pme`.
 - `DashboardStats`: estructura de los indicadores y totales por tipo/dimensión/comuna/estado.
+- `AuditEvent`: evento de auditoría (`fecha_hora, correo_electronico, nombre, rol,
+  accion, detalle`), obtenido vía `getAuditoria` — alimenta `AuditLogView` (ver
+  sección 3.7).
 - `GasResponse<T>`: envoltorio genérico de las respuestas del backend
   (`{ success: boolean; message?: string } & T`).
 - `ValidateUserAccessResponse`: respuesta de la validación de acceso, incluye
@@ -306,6 +361,7 @@ planilla de Google Sheets (`SHEET_ID` en la línea 9 de `Code.gs`).
 | `DetalleSolicitudes` | Un registro por cada reconocimiento dentro de una solicitud | `id_detalle, id_solicitud, ..., tipo_reconocimiento, cantidad, dimension, subdimension, subdimension_otro, nombre_accion, descripcion, fecha_estimada_uso, observaciones, codigo_pme` |
 | `Admin` | Usuarios con acceso al panel administrativo | `CORREO ELECTRONICO, NOMBRE, CARGO, ACTIVO` |
 | `PME` | Tabla de referencia oficial: dimensiones/subdimensiones válidas y su código único (ej. `PME-GP-01`) — alimenta la selección encadenada del formulario | `CODIGO, DIMENSION, SUB_DIMESION` |
+| `Auditoria` | Registro de eventos del sistema: quién ingresó, a qué hora y qué acciones realizó (ver sección 3.7) | `fecha_hora, correo_electronico, nombre, rol, accion, detalle` |
 
 > **`codigo_pme` está al final de `DETALLE_HEADERS`** (no en su posición "lógica"
 > junto a `subdimension`) — decisión deliberada de compatibilidad: `appendRow`
@@ -319,7 +375,7 @@ planilla de Google Sheets (`SHEET_ID` en la línea 9 de `Code.gs`).
 
 | Acción | Función | Descripción |
 |---|---|---|
-| `inicializarHojas` | `inicializarHojas()` | Crea las hojas `Solicitudes`, `DetalleSolicitudes`, `Admin` y `PME` si no existen (idempotente — no duplica ni modifica las existentes). Además, **siembra automáticamente la hoja `PME`** con las 12 combinaciones oficiales (`PME_SEED_DATA`) la primera vez que se crea o si está vacía (`getLastRow() === 1`, solo encabezados). Se puede ejecutar manualmente desde el editor de Apps Script o vía POST. |
+| `inicializarHojas` | `inicializarHojas()` | Crea las hojas `Solicitudes`, `DetalleSolicitudes`, `Admin`, `PME` y `Auditoria` si no existen (idempotente — no duplica ni modifica las existentes). Además, **siembra automáticamente la hoja `PME`** con las 12 combinaciones oficiales (`PME_SEED_DATA`) la primera vez que se crea o si está vacía (`getLastRow() === 1`, solo encabezados); `Auditoria` se crea vacía, sin siembra. Se puede ejecutar manualmente desde el editor de Apps Script o vía POST. |
 | `validateDirectorEmail` | `validateDirectorEmail(email)` | (Validación legacy contra solo la base de establecimientos — anterior al login con Google + Admin) |
 | `validateUserAccess` | `validateUserAccess(email)` | **Cadena de validación actual**: 1) busca el correo en la base de establecimientos (perfil `director`); 2) si no hay coincidencia, busca en la hoja `Admin` (perfil `admin`, valida que esté `ACTIVO`). Devuelve `{ success, role, establishment? , admin? }`. |
 | `getAdmins` | `getAdmins()` | Lista todos los registros de la hoja `Admin`. |
@@ -332,6 +388,8 @@ planilla de Google Sheets (`SHEET_ID` en la línea 9 de `Code.gs`).
 | `updateRequestStatus` | `updateRequestStatus(requestId, status)` | Cambia `estado_revision` de una solicitud. |
 | `getDashboardStats` | `getDashboardStats()` | Calcula los indicadores y totales agregados que alimentan los KPIs y gráficos del panel. |
 | `getPmeOptions` | `getPmeOptions()` | Lee la hoja `PME` y devuelve `{ codigo, dimension, subdimension }` por cada combinación oficial — usado por el formulario para la selección encadenada Dimensión → Subdimensión (ver sección 3.5). |
+| `registrarEvento` | `registrarEventoAuditoria(evento)` | Agrega una fila a la hoja `Auditoria` con `fecha_hora` generada en el servidor (`Utilities.formatDate`) + `correo_electronico, nombre, rol, accion, detalle` recibidos del frontend. Usa `LockService` para concurrencia (ver sección 3.7). |
+| `getAuditoria` | `getAuditoria()` | Lee la hoja `Auditoria` y devuelve los eventos ordenados de más reciente a más antiguo — alimenta `AuditLogView` (ver sección 3.7). |
 
 ### 6.3 Utilidades internas relevantes
 
@@ -364,8 +422,8 @@ planilla de Google Sheets (`SHEET_ID` en la línea 9 de `Code.gs`).
 (para evitar pre-flight CORS con Apps Script) al `GAS_WEB_APP_URL`, y parsea la
 respuesta JSON. Cada función exportada (`validateUserAccess`, `createRequest`,
 `getRequests`, `getRequestDetails`, `updateRequestStatus`, `getDashboardStats`,
-`getAdmins`, `createAdmin`, `deleteAdmin`, etc.) arma el payload con su `action`
-correspondiente y tipa la respuesta esperada.
+`getAdmins`, `createAdmin`, `deleteAdmin`, `registrarEvento`, `getAuditoria`, etc.)
+arma el payload con su `action` correspondiente y tipa la respuesta esperada.
 
 > Si se agrega una acción nueva en `Code.gs`, el patrón a seguir es: declarar el tipo
 > de respuesta en `types/index.ts` (o reutilizar `GasResponse<T>`) y exportar una
