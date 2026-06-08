@@ -42,6 +42,18 @@ var DETALLE_HEADERS = [
   'observaciones',
 ];
 
+/**
+ * Hoja "Admin": planilla manual con los usuarios que tienen acceso al panel
+ * administrativo. Si el correo autenticado con Google no figura en la base
+ * de establecimientos, se busca aquí. Se crea automáticamente con estos
+ * encabezados si aún no existe en la planilla.
+ */
+var ADMIN_SHEET_NAME = 'Admin';
+var ADMIN_HEADERS = ['CORREO ELECTRONICO', 'NOMBRE', 'CARGO', 'ACTIVO'];
+var ADMIN_EMAIL_ALIASES = ['CORREO ELECTRONICO', 'CORREO ELECTRÓNICO', 'CORREO', 'EMAIL', 'CORREO ADMINISTRADOR'];
+var ADMIN_ACTIVE_ALIASES = ['ACTIVO', 'HABILITADO', 'ESTADO'];
+var ADMIN_INACTIVE_VALUES = ['NO', 'FALSE', 'INACTIVO', 'DESHABILITADO', '0'];
+
 var ESTADO_INICIAL = 'Recibido';
 
 var RECOGNITION_TYPE_KEYS = [
@@ -65,6 +77,16 @@ function doPost(e) {
     switch (action) {
       case 'validateDirectorEmail':
         return jsonResponse(validateDirectorEmail(data.email));
+      case 'validateUserAccess':
+        return jsonResponse(validateUserAccess(data.email));
+      case 'getAdmins':
+        return jsonResponse(getAdmins());
+      case 'createAdmin':
+        return jsonResponse(createAdmin(data.admin));
+      case 'updateAdmin':
+        return jsonResponse(updateAdmin(data.email, data.changes));
+      case 'deleteAdmin':
+        return jsonResponse(deleteAdmin(data.email));
       case 'createRequest':
         return jsonResponse(createRequest(data));
       case 'getRequests':
@@ -138,6 +160,265 @@ function validateDirectorEmail(email) {
     message:
       'El correo ingresado no se encuentra registrado en la base de datos de establecimientos. Por favor, contacte al equipo administrador.',
   };
+}
+
+/* ============================================================
+ * AUTENTICACIÓN UNIFICADA (GOOGLE AUTH)
+ *
+ * El frontend valida la identidad con Google Identity Services y envía el
+ * correo autenticado. Aquí se determina el perfil de acceso buscando, en
+ * orden, en la base de establecimientos (perfil "director") y luego en la
+ * hoja "Admin" (perfil "admin"). Esto reemplaza el ingreso manual de correo
+ * por un inicio de sesión con la cuenta de Google institucional.
+ * ============================================================ */
+
+function validateUserAccess(email) {
+  if (!email || typeof email !== 'string' || email.trim() === '') {
+    return { success: false, message: 'No fue posible obtener el correo electrónico de tu cuenta de Google.' };
+  }
+
+  var normalizedEmail = normalizeEmail(email);
+  var spreadsheet = SpreadsheetApp.openById(SHEET_ID);
+
+  // 1) ¿El correo corresponde a un director o directora de establecimiento?
+  var establishmentSheet = spreadsheet.getSheets()[0];
+  var establishmentRows = getSheetDataAsObjects(establishmentSheet);
+
+  for (var i = 0; i < establishmentRows.length; i++) {
+    var row = establishmentRows[i];
+    var rowEmail = extractEstablishmentField(row, [EMAIL_COLUMN_NAME, 'CORREO ELECTRÓNICO']);
+
+    if (rowEmail && normalizeEmail(rowEmail) === normalizedEmail) {
+      return {
+        success: true,
+        role: 'director',
+        message: 'Sesión iniciada como director o directora de establecimiento.',
+        establishment: row,
+      };
+    }
+  }
+
+  // 2) Si no está en la base de establecimientos, ¿es un usuario administrador?
+  var adminSheet = findSheetByNormalizedName(spreadsheet, 'ADMIN');
+  if (adminSheet) {
+    var adminRows = getSheetDataAsObjects(adminSheet);
+
+    for (var j = 0; j < adminRows.length; j++) {
+      var adminRow = adminRows[j];
+      var adminEmail = extractEstablishmentField(adminRow, ADMIN_EMAIL_ALIASES);
+      if (!adminEmail || normalizeEmail(adminEmail) !== normalizedEmail) continue;
+
+      if (!isAdminRowActive(adminRow)) {
+        return {
+          success: false,
+          message: 'Tu cuenta de administrador se encuentra inactiva. Contacta al equipo a cargo del sistema para reactivarla.',
+        };
+      }
+
+      return {
+        success: true,
+        role: 'admin',
+        message: 'Sesión iniciada con perfil administrador.',
+        admin: adminRow,
+      };
+    }
+  }
+
+  return {
+    success: false,
+    message:
+      'El correo ingresado no se encuentra registrado en la base de datos de establecimientos ni como usuario administrador. Por favor, contacte al equipo a cargo del sistema.',
+  };
+}
+
+function isAdminRowActive(adminRow) {
+  var rawValue = extractEstablishmentField(adminRow, ADMIN_ACTIVE_ALIASES);
+  if (!rawValue) return true; // Sin columna de estado: se asume habilitado.
+  return ADMIN_INACTIVE_VALUES.indexOf(normalizeHeader(rawValue)) === -1;
+}
+
+function findSheetByNormalizedName(spreadsheet, normalizedName) {
+  var sheets = spreadsheet.getSheets();
+  for (var i = 0; i < sheets.length; i++) {
+    if (normalizeHeader(sheets[i].getName()) === normalizedName) return sheets[i];
+  }
+  return null;
+}
+
+/* ============================================================
+ * ADMINISTRACIÓN DE LA HOJA "ADMIN"
+ *
+ * CRUD básico sobre la planilla de usuarios administradores, para que el
+ * equipo a cargo pueda gestionar quién tiene acceso al panel sin editar la
+ * hoja de cálculo manualmente.
+ * ============================================================ */
+
+function getAdmins() {
+  var spreadsheet = SpreadsheetApp.openById(SHEET_ID);
+  var sheet = getOrCreateSheet(spreadsheet, ADMIN_SHEET_NAME, ADMIN_HEADERS);
+  var rows = getSheetDataAsObjects(sheet);
+  return { success: true, admins: rows };
+}
+
+function createAdmin(admin) {
+  if (!admin || typeof admin !== 'object') {
+    return { success: false, message: 'Debes indicar los datos del usuario administrador.' };
+  }
+
+  var email = extractEstablishmentField(admin, ADMIN_EMAIL_ALIASES);
+  if (!email || !isValidEmailFormat(email)) {
+    return { success: false, message: 'Debes indicar un correo electrónico con formato válido.' };
+  }
+
+  var normalizedEmail = normalizeEmail(email);
+
+  try {
+    var lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+
+    try {
+      var spreadsheet = SpreadsheetApp.openById(SHEET_ID);
+      var sheet = getOrCreateSheet(spreadsheet, ADMIN_SHEET_NAME, ADMIN_HEADERS);
+      var rows = getSheetDataAsObjects(sheet);
+
+      for (var i = 0; i < rows.length; i++) {
+        var existingEmail = extractEstablishmentField(rows[i], ADMIN_EMAIL_ALIASES);
+        if (existingEmail && normalizeEmail(existingEmail) === normalizedEmail) {
+          return { success: false, message: 'Ya existe un usuario administrador registrado con ese correo electrónico.' };
+        }
+      }
+
+      var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+      var newRow = headers.map(function (header) {
+        var key = String(header).trim();
+        if (normalizeHeader(key) === normalizeHeader('CORREO ELECTRONICO')) return normalizedEmail;
+        return admin[key] !== undefined && admin[key] !== null ? admin[key] : '';
+      });
+
+      sheet.appendRow(newRow);
+
+      return { success: true, message: 'Usuario administrador agregado correctamente.' };
+    } finally {
+      lock.releaseLock();
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: 'No fue posible agregar al usuario administrador: ' + (error && error.message ? error.message : error),
+    };
+  }
+}
+
+function updateAdmin(email, changes) {
+  if (!email || typeof email !== 'string' || email.trim() === '') {
+    return { success: false, message: 'Debes indicar el correo electrónico del usuario administrador a modificar.' };
+  }
+  if (!changes || typeof changes !== 'object') {
+    return { success: false, message: 'Debes indicar los cambios a aplicar.' };
+  }
+
+  var normalizedEmail = normalizeEmail(email);
+
+  try {
+    var lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+
+    try {
+      var spreadsheet = SpreadsheetApp.openById(SHEET_ID);
+      var sheet = getOrCreateSheet(spreadsheet, ADMIN_SHEET_NAME, ADMIN_HEADERS);
+      var values = sheet.getDataRange().getValues();
+      if (values.length < 2) {
+        return { success: false, message: 'No existen usuarios administradores registrados.' };
+      }
+
+      var headers = values[0];
+      var emailColumnIndex = findEmailColumnIndex(headers);
+      if (emailColumnIndex === -1) {
+        return { success: false, message: 'La hoja "Admin" no tiene una columna de correo electrónico configurada.' };
+      }
+
+      for (var r = 1; r < values.length; r++) {
+        var rowEmail = values[r][emailColumnIndex];
+        if (!rowEmail || normalizeEmail(rowEmail) !== normalizedEmail) continue;
+
+        for (var c = 0; c < headers.length; c++) {
+          var headerKey = String(headers[c]).trim();
+          if (Object.prototype.hasOwnProperty.call(changes, headerKey)) {
+            var newValue = changes[headerKey];
+            sheet.getRange(r + 1, c + 1).setValue(newValue === null || newValue === undefined ? '' : newValue);
+          }
+        }
+
+        return { success: true, message: 'Usuario administrador actualizado correctamente.' };
+      }
+
+      return { success: false, message: 'No se encontró un usuario administrador con ese correo electrónico.' };
+    } finally {
+      lock.releaseLock();
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: 'No fue posible actualizar al usuario administrador: ' + (error && error.message ? error.message : error),
+    };
+  }
+}
+
+function deleteAdmin(email) {
+  if (!email || typeof email !== 'string' || email.trim() === '') {
+    return { success: false, message: 'Debes indicar el correo electrónico del usuario administrador a eliminar.' };
+  }
+
+  var normalizedEmail = normalizeEmail(email);
+
+  try {
+    var lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+
+    try {
+      var spreadsheet = SpreadsheetApp.openById(SHEET_ID);
+      var sheet = getOrCreateSheet(spreadsheet, ADMIN_SHEET_NAME, ADMIN_HEADERS);
+      var values = sheet.getDataRange().getValues();
+      if (values.length < 2) {
+        return { success: false, message: 'No existen usuarios administradores registrados.' };
+      }
+
+      var headers = values[0];
+      var emailColumnIndex = findEmailColumnIndex(headers);
+      if (emailColumnIndex === -1) {
+        return { success: false, message: 'La hoja "Admin" no tiene una columna de correo electrónico configurada.' };
+      }
+
+      for (var r = 1; r < values.length; r++) {
+        var rowEmail = values[r][emailColumnIndex];
+        if (!rowEmail || normalizeEmail(rowEmail) !== normalizedEmail) continue;
+
+        sheet.deleteRow(r + 1);
+        return { success: true, message: 'Usuario administrador eliminado correctamente.' };
+      }
+
+      return { success: false, message: 'No se encontró un usuario administrador con ese correo electrónico.' };
+    } finally {
+      lock.releaseLock();
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: 'No fue posible eliminar al usuario administrador: ' + (error && error.message ? error.message : error),
+    };
+  }
+}
+
+function findEmailColumnIndex(headers) {
+  for (var i = 0; i < ADMIN_EMAIL_ALIASES.length; i++) {
+    var index = findColumnIndex(headers, ADMIN_EMAIL_ALIASES[i]);
+    if (index !== -1) return index;
+  }
+  return -1;
+}
+
+function isValidEmailFormat(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim());
 }
 
 /* ============================================================

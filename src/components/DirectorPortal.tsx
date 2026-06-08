@@ -1,54 +1,43 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { createRequest, validateDirectorEmail } from '../services/gasApi'
-import type { Establishment, RecognitionItem } from '../types'
+import { createRequest } from '../services/gasApi'
+import type { RecognitionItem } from '../types'
 import { emptyRecognitionItem, validateRequest } from '../utils/validators'
 import { getEstablishmentName } from '../utils/formatters'
 import logoSlep from '../assets/logo-slep-colchagua.webp'
+import { useAuth } from '../context/AuthContext'
 import LoginDirector from './LoginDirector'
 import EstablishmentInfo from './EstablishmentInfo'
 import RecognitionForm from './RecognitionForm'
 import RequestSummary from './RequestSummary'
 import AlertMessage from './AlertMessage'
 
-type Step = 'login' | 'form' | 'summary' | 'success'
+type Step = 'form' | 'summary' | 'success'
 
 export default function DirectorPortal() {
-  const [step, setStep] = useState<Step>('login')
-  const [establishment, setEstablishment] = useState<Establishment | null>(null)
+  const { auth, signInWithGoogleCredential, signOut } = useAuth()
+
+  const [step, setStep] = useState<Step>('form')
   const [items, setItems] = useState<RecognitionItem[]>([emptyRecognitionItem()])
   const [generalObservations, setGeneralObservations] = useState('')
-
-  const [loginLoading, setLoginLoading] = useState(false)
-  const [loginError, setLoginError] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [requestId, setRequestId] = useState<string | null>(null)
 
-  async function handleLogin(email: string) {
-    setLoginLoading(true)
-    setLoginError(null)
-    try {
-      const res = await validateDirectorEmail(email)
-      if (res.success && res.establishment) {
-        setEstablishment(res.establishment)
-        setStep('form')
-      } else {
-        setLoginError(
-          res.message ||
-            'El correo ingresado no se encuentra registrado en la base de datos de establecimientos. Por favor, contacte al equipo administrador.',
-        )
-      }
-    } catch {
-      setLoginError('No fue posible conectar con el sistema. Verifica tu conexión e intenta nuevamente.')
-    } finally {
-      setLoginLoading(false)
+  useEffect(() => {
+    if (auth.status !== 'authenticated') {
+      setStep('form')
+      setItems([emptyRecognitionItem()])
+      setGeneralObservations('')
+      setFormError(null)
+      setSubmitError(null)
+      setRequestId(null)
     }
-  }
+  }, [auth.status])
 
   function handleGoToSummary() {
-    const error = validateRequest(establishment, items)
+    const error = validateRequest(auth.establishment, items)
     if (error) {
       setFormError(error)
       return
@@ -58,11 +47,11 @@ export default function DirectorPortal() {
   }
 
   async function handleConfirmSubmit() {
-    if (!establishment) return
+    if (!auth.establishment) return
     setSubmitting(true)
     setSubmitError(null)
     try {
-      const res = await createRequest(establishment, generalObservations, items)
+      const res = await createRequest(auth.establishment, generalObservations, items)
       if (res.success) {
         setRequestId(res.requestId ?? null)
         setStep('success')
@@ -80,19 +69,29 @@ export default function DirectorPortal() {
   }
 
   function handleRestart() {
-    setStep('login')
-    setEstablishment(null)
+    setStep('form')
     setItems([emptyRecognitionItem()])
     setGeneralObservations('')
-    setLoginError(null)
     setFormError(null)
     setSubmitError(null)
     setRequestId(null)
   }
 
-  if (step === 'login') {
-    return <LoginDirector onSubmitEmail={handleLogin} loading={loginLoading} errorMessage={loginError} />
+  if (auth.status === 'signedOut' || auth.status === 'checking' || auth.status === 'unauthorized') {
+    return (
+      <LoginDirector
+        onCredential={signInWithGoogleCredential}
+        loading={auth.status === 'checking'}
+        errorMessage={auth.status === 'unauthorized' ? auth.message : null}
+      />
+    )
   }
+
+  if (auth.role === 'admin') {
+    return <AdminAccountNotice email={auth.email} name={auth.name} onSignOut={signOut} />
+  }
+
+  const establishment = auth.establishment!
 
   return (
     <div className="min-h-[100svh] bg-neutral-100">
@@ -107,18 +106,28 @@ export default function DirectorPortal() {
               Servicio Local de Educación Pública Colchagua
             </p>
           </div>
-          <Link to="/admin" className="ml-auto hidden text-xs font-bold text-neutral-400 hover:text-royal-500 sm:inline">
-            Panel administrativo
-          </Link>
+          <div className="ml-auto flex items-center gap-4">
+            <Link to="/admin" className="hidden text-xs font-bold text-neutral-400 hover:text-royal-500 sm:inline">
+              Panel administrativo
+            </Link>
+            <button
+              type="button"
+              onClick={signOut}
+              className="text-xs font-bold text-neutral-400 transition hover:text-coral-600"
+              title={auth.email}
+            >
+              Cerrar sesión
+            </button>
+          </div>
         </div>
       </header>
 
       <main className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-8 sm:px-6">
         {step === 'success' ? (
-          <SuccessScreen establishmentName={establishment ? getEstablishmentName(establishment) : ''} requestId={requestId} onRestart={handleRestart} />
+          <SuccessScreen establishmentName={getEstablishmentName(establishment)} requestId={requestId} onRestart={handleRestart} />
         ) : (
           <>
-            {establishment && <EstablishmentInfo establishment={establishment} />}
+            <EstablishmentInfo establishment={establishment} />
 
             {step === 'form' && (
               <RecognitionForm
@@ -131,7 +140,7 @@ export default function DirectorPortal() {
               />
             )}
 
-            {step === 'summary' && establishment && (
+            {step === 'summary' && (
               <>
                 {submitError && <AlertMessage tone="error" title="No fue posible enviar la solicitud">{submitError}</AlertMessage>}
                 <RequestSummary
@@ -183,6 +192,42 @@ function SuccessScreen({ establishmentName, requestId, onRestart }: SuccessScree
       >
         Registrar otra solicitud
       </button>
+    </div>
+  )
+}
+
+type AdminAccountNoticeProps = {
+  email: string
+  name: string | null
+  onSignOut: () => void
+}
+
+function AdminAccountNotice({ email, name, onSignOut }: AdminAccountNoticeProps) {
+  return (
+    <div className="flex min-h-[100svh] w-full items-center justify-center bg-neutral-100 px-4 py-10">
+      <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm">
+        <h1 className="text-lg font-extrabold text-navy-500">Cuenta con perfil administrador</h1>
+        <p className="mt-3 text-sm font-medium leading-relaxed text-neutral-600">
+          {name ? `${name}, tu` : 'Tu'} cuenta ({email}) está registrada como usuaria o usuario administrador, no como
+          directora o director de un establecimiento. Dirígete al panel administrativo para revisar las solicitudes
+          recibidas.
+        </p>
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+          <Link
+            to="/admin"
+            className="inline-flex items-center justify-center rounded-lg bg-royal-500 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-royal-600"
+          >
+            Ir al panel administrativo
+          </Link>
+          <button
+            type="button"
+            onClick={onSignOut}
+            className="inline-flex items-center justify-center rounded-lg border border-navy-500 px-5 py-3 text-sm font-extrabold text-navy-500 transition hover:bg-navy-50"
+          >
+            Cerrar sesión
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

@@ -7,6 +7,7 @@ import type {
   RequestDetail,
   AdminRequest,
   ValidateEmailResponse,
+  ValidateUserAccessResponse,
 } from '../types'
 
 const GAS_WEB_APP_URL =
@@ -32,6 +33,18 @@ async function callGasApi<T = unknown>(payload: Record<string, unknown>): Promis
 export async function validateDirectorEmail(email: string): Promise<ValidateEmailResponse> {
   return callGasApi<ValidateEmailResponse>({
     action: 'validateDirectorEmail',
+    email,
+  })
+}
+
+/**
+ * Valida el correo entregado por Google Auth contra la base de
+ * establecimientos y, si no hay coincidencia, contra la hoja "Admin",
+ * devolviendo el perfil ("director" | "admin") junto con su registro.
+ */
+export async function validateUserAccess(email: string): Promise<ValidateUserAccessResponse> {
+  return callGasApi<ValidateUserAccessResponse>({
+    action: 'validateUserAccess',
     email,
   })
 }

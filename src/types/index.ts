@@ -156,6 +156,20 @@ export type ValidateEmailResponse = {
   establishment?: Establishment
 }
 
+// El acceso ahora se valida vía Google Auth: primero contra la base de
+// establecimientos (perfil "director") y, si no hay coincidencia, contra la
+// hoja "Admin" (perfil "admin"). Ambos perfiles comparten una forma flexible
+// porque sus encabezados pueden variar entre planillas.
+export type UserRole = 'director' | 'admin'
+
+export type ValidateUserAccessResponse = {
+  success: boolean
+  message?: string
+  role?: UserRole
+  establishment?: Establishment
+  admin?: Establishment
+}
+
 export type CreateRequestResponse = {
   success: boolean
   message: string

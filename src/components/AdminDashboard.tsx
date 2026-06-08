@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   Bar,
   BarChart,
@@ -21,15 +22,19 @@ import {
 import type { AdminRequest, DashboardStats, RequestDetail } from '../types'
 import { buildConsolidatedCsv, downloadCsv, type ConsolidatedRow } from '../utils/csvExport'
 import { formatNumber } from '../utils/formatters'
+import { useAuth } from '../context/AuthContext'
 import AlertMessage from './AlertMessage'
 import FiltersPanel, { EMPTY_FILTERS, type RequestFilters } from './FiltersPanel'
 import KpiCard from './KpiCard'
 import LoadingSpinner from './LoadingSpinner'
+import LoginDirector from './LoginDirector'
 import RequestsTable from './RequestsTable'
 
 const CHART_COLORS = ['#006BB9', '#25306B', '#FF1D3D', '#56A6DE', '#1F8A5B', '#8A5400', '#7B85B6', '#94081B']
 
 export default function AdminDashboard() {
+  const { auth, signInWithGoogleCredential, signOut } = useAuth()
+
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [requests, setRequests] = useState<AdminRequest[]>([])
   const [detailsByRequest, setDetailsByRequest] = useState<Record<string, RequestDetail[]>>({})
@@ -40,8 +45,10 @@ export default function AdminDashboard() {
   const [filters, setFilters] = useState<RequestFilters>(EMPTY_FILTERS)
 
   useEffect(() => {
-    void loadAll()
-  }, [])
+    if (auth.status === 'authenticated' && auth.role === 'admin') {
+      void loadAll()
+    }
+  }, [auth.status, auth.role])
 
   async function loadAll() {
     setLoading(true)
@@ -159,16 +166,45 @@ export default function AdminDashboard() {
     downloadCsv(`solicitudes_reconocimientos_${today}.csv`, csv)
   }
 
+  if (auth.status === 'signedOut' || auth.status === 'checking' || auth.status === 'unauthorized') {
+    return (
+      <LoginDirector
+        onCredential={signInWithGoogleCredential}
+        loading={auth.status === 'checking'}
+        errorMessage={auth.status === 'unauthorized' ? auth.message : null}
+      />
+    )
+  }
+
+  if (auth.role !== 'admin') {
+    return <NotAuthorizedScreen email={auth.email} onSignOut={signOut} />
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
-      <header className="flex flex-col gap-1">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-royal-500">Panel administrativo</p>
-        <h1 className="text-2xl font-extrabold tracking-tight text-navy-500 sm:text-3xl">
-          Levantamiento de Necesidades de Reconocimientos
-        </h1>
-        <p className="text-sm font-medium text-neutral-500">
-          Servicio Local de Educación Pública Colchagua · consolidado territorial de solicitudes
-        </p>
+      <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-1">
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-royal-500">Panel administrativo</p>
+          <h1 className="text-2xl font-extrabold tracking-tight text-navy-500 sm:text-3xl">
+            Levantamiento de Necesidades de Reconocimientos
+          </h1>
+          <p className="text-sm font-medium text-neutral-500">
+            Servicio Local de Educación Pública Colchagua · consolidado territorial de solicitudes
+          </p>
+        </div>
+        <div className="flex items-center gap-4">
+          <Link to="/" className="text-xs font-bold text-neutral-400 transition hover:text-royal-500">
+            Portal de directores
+          </Link>
+          <button
+            type="button"
+            onClick={signOut}
+            className="text-xs font-bold text-neutral-400 transition hover:text-coral-600"
+            title={auth.email}
+          >
+            Cerrar sesión
+          </button>
+        </div>
       </header>
 
       {errorMessage && <AlertMessage tone="error" title="Ocurrió un problema">{errorMessage}</AlertMessage>}
@@ -343,6 +379,40 @@ function buildTypeSummary(rows: ConsolidatedRow[]) {
   return Array.from(map.entries())
     .map(([tipo, totals]) => ({ tipo, ...totals }))
     .sort((a, b) => b.cantidad - a.cantidad)
+}
+
+type NotAuthorizedScreenProps = {
+  email: string
+  onSignOut: () => void
+}
+
+function NotAuthorizedScreen({ email, onSignOut }: NotAuthorizedScreenProps) {
+  return (
+    <div className="flex min-h-[100svh] w-full items-center justify-center bg-neutral-100 px-4 py-10">
+      <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm">
+        <h1 className="text-lg font-extrabold text-navy-500">No tienes permisos de administrador</h1>
+        <p className="mt-3 text-sm font-medium leading-relaxed text-neutral-600">
+          Tu cuenta ({email}) no está registrada en la hoja de usuarios administradores. Si necesitas acceso al panel
+          administrativo, solicita que tu correo institucional sea agregado a esa planilla.
+        </p>
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+          <Link
+            to="/"
+            className="inline-flex items-center justify-center rounded-lg bg-royal-500 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-royal-600"
+          >
+            Ir al portal de directores
+          </Link>
+          <button
+            type="button"
+            onClick={onSignOut}
+            className="inline-flex items-center justify-center rounded-lg border border-navy-500 px-5 py-3 text-sm font-extrabold text-navy-500 transition hover:bg-navy-50"
+          >
+            Cerrar sesión
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
