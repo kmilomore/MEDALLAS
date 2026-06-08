@@ -1,9 +1,4 @@
-import {
-  DIMENSIONS,
-  RECOGNITION_TYPES,
-  REVIEW_STATUSES,
-  SUBDIMENSIONS,
-} from '../types'
+import { RECOGNITION_TYPES, REVIEW_STATUSES } from '../types'
 
 export type RequestFilters = {
   search: string
@@ -26,6 +21,8 @@ export const EMPTY_FILTERS: RequestFilters = {
 type FiltersPanelProps = {
   filters: RequestFilters
   comunas: string[]
+  dimensiones: string[]
+  subdimensiones: string[]
   onChange: (filters: RequestFilters) => void
   onReset: () => void
 }
@@ -34,9 +31,13 @@ const selectClass =
   'w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-medium text-navy-700 outline-none transition focus:border-royal-500 focus:bg-white focus:ring-2 focus:ring-royal-100'
 const labelClass = 'mb-1 block text-[11px] font-bold uppercase tracking-wider text-neutral-500'
 
-export default function FiltersPanel({ filters, comunas, onChange, onReset }: FiltersPanelProps) {
+export default function FiltersPanel({ filters, comunas, dimensiones, subdimensiones, onChange, onReset }: FiltersPanelProps) {
   function update<K extends keyof RequestFilters>(key: K, value: RequestFilters[K]) {
     onChange({ ...filters, [key]: value })
+  }
+
+  function handleDimensionChange(value: string) {
+    onChange({ ...filters, dimension: value, subdimension: '' })
   }
 
   return (
@@ -101,10 +102,10 @@ export default function FiltersPanel({ filters, comunas, onChange, onReset }: Fi
         </div>
 
         <div>
-          <label className={labelClass}>Dimensión</label>
-          <select className={selectClass} value={filters.dimension} onChange={(e) => update('dimension', e.target.value)}>
+          <label className={labelClass}>Dimensión (PME)</label>
+          <select className={selectClass} value={filters.dimension} onChange={(e) => handleDimensionChange(e.target.value)}>
             <option value="">Todas</option>
-            {DIMENSIONS.map((dimension) => (
+            {dimensiones.map((dimension) => (
               <option key={dimension} value={dimension}>
                 {dimension}
               </option>
@@ -113,14 +114,14 @@ export default function FiltersPanel({ filters, comunas, onChange, onReset }: Fi
         </div>
 
         <div>
-          <label className={labelClass}>Subdimensión</label>
+          <label className={labelClass}>Subdimensión (PME)</label>
           <select
             className={selectClass}
             value={filters.subdimension}
             onChange={(e) => update('subdimension', e.target.value)}
           >
             <option value="">Todas</option>
-            {SUBDIMENSIONS.map((subdimension) => (
+            {subdimensiones.map((subdimension) => (
               <option key={subdimension} value={subdimension}>
                 {subdimension}
               </option>

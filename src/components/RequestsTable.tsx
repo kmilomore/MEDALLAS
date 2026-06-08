@@ -143,6 +143,7 @@ function RequestRow({ request, isExpanded, details, loadingDetails, onToggle, on
                       <th className="px-3 py-2">Cantidad</th>
                       <th className="px-3 py-2">Dimensión</th>
                       <th className="px-3 py-2">Subdimensión</th>
+                      <th className="px-3 py-2">Código PME</th>
                       <th className="px-3 py-2">Acción asociada</th>
                       <th className="px-3 py-2">Fecha estimada</th>
                       <th className="px-3 py-2">Observaciones</th>
@@ -163,6 +164,7 @@ function RequestRow({ request, isExpanded, details, loadingDetails, onToggle, on
                             ? `Otro (${detail.subdimension_otro})`
                             : detail.subdimension}
                         </td>
+                        <td className="px-3 py-2 font-mono text-xs font-bold text-navy-700">{detail.codigo_pme || '—'}</td>
                         <td className="px-3 py-2 font-medium text-neutral-700">{detail.nombre_accion}</td>
                         <td className="px-3 py-2 font-medium text-neutral-700">{formatDate(detail.fecha_estimada_uso)}</td>
                         <td className="px-3 py-2 font-medium text-neutral-700">{detail.observaciones || '—'}</td>

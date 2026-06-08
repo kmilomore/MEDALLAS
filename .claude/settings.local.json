@@ -7,7 +7,9 @@
       "Skill(run:*)",
       "Read(//usr/local/**)",
       "Bash(npx --yes playwright --version)",
-      "Bash(npx playwright *)"
+      "Bash(npx playwright *)",
+      "Bash(sed -n '14,26p;27,40p' Code.gs)",
+      "Bash(sed -n '255,290p' Code.gs)"
     ]
   }
 }

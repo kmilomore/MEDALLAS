@@ -1,13 +1,13 @@
 import {
-  DIMENSIONS,
   RECOGNITION_TYPES,
-  SUBDIMENSIONS,
+  type PmeOption,
   type RecognitionItem as RecognitionItemType,
 } from '../types'
 
 type RecognitionItemProps = {
   index: number
   item: RecognitionItemType
+  pmeOptions: PmeOption[]
   canRemove: boolean
   onChange: (index: number, patch: Partial<RecognitionItemType>) => void
   onRemove: (index: number) => void
@@ -17,7 +17,19 @@ const inputClass =
   'w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3.5 py-2.5 text-sm font-medium text-navy-700 outline-none transition focus:border-royal-500 focus:bg-white focus:ring-2 focus:ring-royal-100'
 const labelClass = 'mb-1.5 block text-xs font-bold uppercase tracking-wide text-neutral-600'
 
-export default function RecognitionItem({ index, item, canRemove, onChange, onRemove }: RecognitionItemProps) {
+export default function RecognitionItem({ index, item, pmeOptions, canRemove, onChange, onRemove }: RecognitionItemProps) {
+  const dimensions = Array.from(new Set(pmeOptions.map((option) => option.dimension)))
+  const subdimensions = pmeOptions.filter((option) => option.dimension === item.dimension)
+
+  function handleDimensionChange(value: string) {
+    onChange(index, { dimension: value, subdimension: '', codigo_pme: '' })
+  }
+
+  function handleSubdimensionChange(value: string) {
+    const match = subdimensions.find((option) => option.subdimension === value)
+    onChange(index, { subdimension: value, codigo_pme: match ? match.codigo : '' })
+  }
+
   return (
     <div className="rounded-xl border border-neutral-200 bg-neutral-50/60 p-5">
       <div className="mb-4 flex items-center justify-between">
@@ -80,14 +92,14 @@ export default function RecognitionItem({ index, item, canRemove, onChange, onRe
         </div>
 
         <div>
-          <label className={labelClass}>Dimensión asociada *</label>
+          <label className={labelClass}>Dimensión asociada (PME) *</label>
           <select
             className={inputClass}
             value={item.dimension}
-            onChange={(e) => onChange(index, { dimension: e.target.value as RecognitionItemType['dimension'] })}
+            onChange={(e) => handleDimensionChange(e.target.value)}
           >
             <option value="">Selecciona una opción</option>
-            {DIMENSIONS.map((option) => (
+            {dimensions.map((option) => (
               <option key={option} value={option}>
                 {option}
               </option>
@@ -96,28 +108,20 @@ export default function RecognitionItem({ index, item, canRemove, onChange, onRe
         </div>
 
         <div>
-          <label className={labelClass}>Subdimensión asociada *</label>
+          <label className={labelClass}>Subdimensión asociada (PME) *</label>
           <select
             className={inputClass}
             value={item.subdimension}
-            onChange={(e) => onChange(index, { subdimension: e.target.value as RecognitionItemType['subdimension'] })}
+            disabled={!item.dimension}
+            onChange={(e) => handleSubdimensionChange(e.target.value)}
           >
-            <option value="">Selecciona una opción</option>
-            {SUBDIMENSIONS.map((option) => (
-              <option key={option} value={option}>
-                {option}
+            <option value="">{item.dimension ? 'Selecciona una opción' : 'Primero selecciona una dimensión'}</option>
+            {subdimensions.map((option) => (
+              <option key={option.codigo} value={option.subdimension}>
+                {option.codigo} · {option.subdimension}
               </option>
             ))}
           </select>
-          {item.subdimension === 'Otro' && (
-            <input
-              type="text"
-              placeholder="Especifica la subdimensión"
-              value={item.subdimension_otro}
-              onChange={(e) => onChange(index, { subdimension_otro: e.target.value })}
-              className={`${inputClass} mt-2`}
-            />
-          )}
         </div>
 
         <div className="sm:col-span-2">

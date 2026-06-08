@@ -1,5 +1,9 @@
-import type { RecognitionItem as RecognitionItemType } from '../types'
+import { useEffect, useState } from 'react'
+import { getPmeOptions } from '../services/gasApi'
+import type { PmeOption, RecognitionItem as RecognitionItemType } from '../types'
 import { emptyRecognitionItem } from '../utils/validators'
+import AlertMessage from './AlertMessage'
+import LoadingSpinner from './LoadingSpinner'
 import RecognitionItemBlock from './RecognitionItem'
 
 type RecognitionFormProps = {
@@ -19,6 +23,35 @@ export default function RecognitionForm({
   onSubmit,
   errorMessage,
 }: RecognitionFormProps) {
+  const [pmeOptions, setPmeOptions] = useState<PmeOption[]>([])
+  const [pmeLoading, setPmeLoading] = useState(true)
+  const [pmeError, setPmeError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadPmeOptions() {
+      setPmeLoading(true)
+      setPmeError(null)
+      try {
+        const res = await getPmeOptions()
+        if (cancelled) return
+        if (!res.success) throw new Error(res.message || 'No fue posible cargar las dimensiones y subdimensiones del PME.')
+        setPmeOptions(res.opciones ?? [])
+      } catch (error) {
+        if (cancelled) return
+        setPmeError(error instanceof Error ? error.message : 'No fue posible cargar las dimensiones y subdimensiones del PME.')
+      } finally {
+        if (!cancelled) setPmeLoading(false)
+      }
+    }
+
+    void loadPmeOptions()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   function handleItemChange(index: number, patch: Partial<RecognitionItemType>) {
     const next = items.slice()
     next[index] = { ...next[index], ...patch }
@@ -44,26 +77,39 @@ export default function RecognitionForm({
         </p>
       </div>
 
-      <div className="flex flex-col gap-4">
-        {items.map((item, index) => (
-          <RecognitionItemBlock
-            key={index}
-            index={index}
-            item={item}
-            canRemove={items.length > 1}
-            onChange={handleItemChange}
-            onRemove={handleRemoveItem}
-          />
-        ))}
-      </div>
+      {pmeError && (
+        <div className="mb-4">
+          <AlertMessage tone="error" title="No fue posible cargar las dimensiones del PME">{pmeError}</AlertMessage>
+        </div>
+      )}
 
-      <button
-        type="button"
-        onClick={handleAddItem}
-        className="mt-4 inline-flex items-center gap-2 rounded-lg border border-dashed border-royal-300 bg-royal-50 px-4 py-2.5 text-sm font-bold text-royal-700 transition hover:border-royal-500 hover:bg-royal-100"
-      >
-        <span className="text-base leading-none">+</span> Agregar otro reconocimiento
-      </button>
+      {pmeLoading ? (
+        <LoadingSpinner label="Cargando dimensiones y subdimensiones del PME…" />
+      ) : (
+        <>
+          <div className="flex flex-col gap-4">
+            {items.map((item, index) => (
+              <RecognitionItemBlock
+                key={index}
+                index={index}
+                item={item}
+                pmeOptions={pmeOptions}
+                canRemove={items.length > 1}
+                onChange={handleItemChange}
+                onRemove={handleRemoveItem}
+              />
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleAddItem}
+            className="mt-4 inline-flex items-center gap-2 rounded-lg border border-dashed border-royal-300 bg-royal-50 px-4 py-2.5 text-sm font-bold text-royal-700 transition hover:border-royal-500 hover:bg-royal-100"
+          >
+            <span className="text-base leading-none">+</span> Agregar otro reconocimiento
+          </button>
+        </>
+      )}
 
       <div className="mt-6 border-t border-neutral-200 pt-5">
         <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-neutral-600">

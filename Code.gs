@@ -40,6 +40,7 @@ var DETALLE_HEADERS = [
   'descripcion',
   'fecha_estimada_uso',
   'observaciones',
+  'codigo_pme',
 ];
 
 /**
@@ -53,6 +54,30 @@ var ADMIN_HEADERS = ['CORREO ELECTRONICO', 'NOMBRE', 'CARGO', 'ACTIVO'];
 var ADMIN_EMAIL_ALIASES = ['CORREO ELECTRONICO', 'CORREO ELECTRÓNICO', 'CORREO', 'EMAIL', 'CORREO ADMINISTRADOR'];
 var ADMIN_ACTIVE_ALIASES = ['ACTIVO', 'HABILITADO', 'ESTADO'];
 var ADMIN_INACTIVE_VALUES = ['NO', 'FALSE', 'INACTIVO', 'DESHABILITADO', '0'];
+
+/**
+ * Hoja "PME": tabla de referencia oficial del Plan de Mejoramiento Educativo
+ * con las dimensiones y subdimensiones válidas y su código único
+ * (ej. "PME-GP-01"). El formulario de ingreso usa estos datos para presentar
+ * la selección encadenada Dimensión → Subdimensión. Se siembra automáticamente
+ * la primera vez que se crea (o si está vacía) mediante inicializarHojas().
+ */
+var PME_SHEET_NAME = 'PME';
+var PME_HEADERS = ['CODIGO', 'DIMENSION', 'SUB_DIMESION'];
+var PME_SEED_DATA = [
+  ['PME-GP-01', 'Gestión Pedagógica', 'Gestión curricular'],
+  ['PME-GP-02', 'Gestión Pedagógica', 'Enseñanza y aprendizaje en el aula'],
+  ['PME-GP-03', 'Gestión Pedagógica', 'Apoyo al desarrollo de los estudiantes'],
+  ['PME-LID-01', 'Liderazgo', 'Liderazgo del sostenedor'],
+  ['PME-LID-02', 'Liderazgo', 'Liderazgo del director'],
+  ['PME-LID-03', 'Liderazgo', 'Planificación y gestión de resultados'],
+  ['PME-CE-01', 'Convivencia Escolar', 'Formación'],
+  ['PME-CE-02', 'Convivencia Escolar', 'Convivencia escolar'],
+  ['PME-CE-03', 'Convivencia Escolar', 'Participación y vida democrática'],
+  ['PME-GR-01', 'Gestión de Recursos', 'Gestión del personal'],
+  ['PME-GR-02', 'Gestión de Recursos', 'Gestión de recursos financieros'],
+  ['PME-GR-03', 'Gestión de Recursos', 'Gestión de recursos educativos'],
+];
 
 var ESTADO_INICIAL = 'Recibido';
 
@@ -99,6 +124,8 @@ function doPost(e) {
         return jsonResponse(updateRequestStatus(data.requestId, data.status));
       case 'getDashboardStats':
         return jsonResponse(getDashboardStats());
+      case 'getPmeOptions':
+        return jsonResponse(getPmeOptions());
       default:
         return jsonResponse({
           success: false,
@@ -153,11 +180,17 @@ function inicializarHojas() {
     { nombre: SOLICITUDES_SHEET_NAME, headers: SOLICITUDES_HEADERS },
     { nombre: DETALLE_SHEET_NAME, headers: DETALLE_HEADERS },
     { nombre: ADMIN_SHEET_NAME, headers: ADMIN_HEADERS },
+    { nombre: PME_SHEET_NAME, headers: PME_HEADERS },
   ];
 
   var hojas = definiciones.map(function (definicion) {
     var existiaAntes = !!spreadsheet.getSheetByName(definicion.nombre);
-    getOrCreateSheet(spreadsheet, definicion.nombre, definicion.headers);
+    var sheet = getOrCreateSheet(spreadsheet, definicion.nombre, definicion.headers);
+
+    if (definicion.nombre === PME_SHEET_NAME && sheet.getLastRow() === 1) {
+      sheet.getRange(2, 1, PME_SEED_DATA.length, PME_HEADERS.length).setValues(PME_SEED_DATA);
+    }
+
     return { hoja: definicion.nombre, estado: existiaAntes ? 'ya existía' : 'creada' };
   });
 
@@ -166,6 +199,35 @@ function inicializarHojas() {
     message: 'Las hojas necesarias fueron verificadas; las que faltaban se crearon con sus encabezados.',
     hojas: hojas,
   };
+}
+
+/**
+ * Lee la hoja "PME" y devuelve las combinaciones oficiales de
+ * Dimensión/Subdimensión junto con su código único, para que el formulario de
+ * ingreso presente la selección encadenada Dimensión → Subdimensión.
+ */
+function getPmeOptions() {
+  try {
+    var spreadsheet = SpreadsheetApp.openById(SHEET_ID);
+    var sheet = getOrCreateSheet(spreadsheet, PME_SHEET_NAME, PME_HEADERS);
+    var rows = getSheetDataAsObjects(sheet);
+
+    var opciones = rows
+      .filter(function (row) {
+        return String(row['CODIGO'] || '').trim() !== '';
+      })
+      .map(function (row) {
+        return {
+          codigo: String(row['CODIGO'] || '').trim(),
+          dimension: String(row['DIMENSION'] || '').trim(),
+          subdimension: String(row['SUB_DIMESION'] || '').trim(),
+        };
+      });
+
+    return { success: true, opciones: opciones };
+  } catch (error) {
+    return { success: false, message: 'No fue posible obtener las dimensiones y subdimensiones del PME.' };
+  }
 }
 
 /* ============================================================
@@ -538,6 +600,7 @@ function createRequest(data) {
           item.descripcion || '',
           item.fecha_estimada_uso || '',
           item.observaciones || '',
+          item.codigo_pme || '',
         ]);
       }
 
@@ -624,6 +687,7 @@ function getRequestDetails(requestId) {
           descripcion: String(row['descripcion'] || ''),
           fecha_estimada_uso: String(row['fecha_estimada_uso'] || ''),
           observaciones: String(row['observaciones'] || ''),
+          codigo_pme: String(row['codigo_pme'] || ''),
         };
       });
 

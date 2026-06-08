@@ -3,6 +3,7 @@ import type {
   DashboardStats,
   Establishment,
   GasResponse,
+  PmeOption,
   RecognitionItem,
   RequestDetail,
   AdminRequest,
@@ -91,6 +92,12 @@ export async function updateRequestStatus(
 export async function getDashboardStats(): Promise<GasResponse<{ stats: DashboardStats }>> {
   return callGasApi<GasResponse<{ stats: DashboardStats }>>({
     action: 'getDashboardStats',
+  })
+}
+
+export async function getPmeOptions(): Promise<GasResponse<{ opciones: PmeOption[] }>> {
+  return callGasApi<GasResponse<{ opciones: PmeOption[] }>>({
+    action: 'getPmeOptions',
   })
 }
 

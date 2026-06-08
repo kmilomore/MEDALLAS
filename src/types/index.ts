@@ -13,37 +13,23 @@ export type RecognitionType =
   | 'Reconocimientos especiales'
   | 'Otro'
 
-export type DimensionOption =
-  | 'Participación educativa'
-  | 'Formación integral'
-  | 'Vinculación territorial'
-  | 'Convivencia educativa'
-  | 'Trayectoria educativa'
-  | 'Actividades extraescolares'
-  | 'Reconocimiento institucional'
-  | 'Otro'
-
-export type SubdimensionOption =
-  | 'Actividades deportivas'
-  | 'Actividades culturales'
-  | 'Liderazgo estudiantil'
-  | 'Participación de apoderados'
-  | 'Centros de estudiantes'
-  | 'Centros de padres, madres y apoderados'
-  | 'Consejos escolares'
-  | 'Ceremonias institucionales'
-  | 'Premiaciones'
-  | 'Ferias, encuentros o congresos'
-  | 'Reconocimiento a trayectorias'
-  | 'Otro'
+// Combinación oficial de Dimensión/Subdimensión del PME (Plan de Mejoramiento
+// Educativo), identificada por un código único (ej. "PME-GP-01"). Se obtiene
+// desde la hoja "PME" de la planilla y alimenta la selección encadenada
+// Dimensión → Subdimensión del formulario de ingreso.
+export type PmeOption = {
+  codigo: string
+  dimension: string
+  subdimension: string
+}
 
 export type RecognitionItem = {
   tipo_reconocimiento: RecognitionType | ''
   tipo_reconocimiento_otro: string
   cantidad: number | ''
-  dimension: DimensionOption | ''
-  subdimension: SubdimensionOption | ''
-  subdimension_otro: string
+  dimension: string
+  subdimension: string
+  codigo_pme: string
   nombre_accion: string
   descripcion: string
   fecha_estimada_uso: string
@@ -81,6 +67,7 @@ export type RequestDetail = {
   dimension: string
   subdimension: string
   subdimension_otro: string
+  codigo_pme: string
   nombre_accion: string
   descripcion: string
   fecha_estimada_uso: string
@@ -104,32 +91,6 @@ export const RECOGNITION_TYPES: RecognitionType[] = [
   'Trofeos',
   'Certificados',
   'Reconocimientos especiales',
-  'Otro',
-]
-
-export const DIMENSIONS: DimensionOption[] = [
-  'Participación educativa',
-  'Formación integral',
-  'Vinculación territorial',
-  'Convivencia educativa',
-  'Trayectoria educativa',
-  'Actividades extraescolares',
-  'Reconocimiento institucional',
-  'Otro',
-]
-
-export const SUBDIMENSIONS: SubdimensionOption[] = [
-  'Actividades deportivas',
-  'Actividades culturales',
-  'Liderazgo estudiantil',
-  'Participación de apoderados',
-  'Centros de estudiantes',
-  'Centros de padres, madres y apoderados',
-  'Consejos escolares',
-  'Ceremonias institucionales',
-  'Premiaciones',
-  'Ferias, encuentros o congresos',
-  'Reconocimiento a trayectorias',
   'Otro',
 ]
 

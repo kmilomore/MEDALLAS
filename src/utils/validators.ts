@@ -14,9 +14,6 @@ export function isRecognitionItemValid(item: RecognitionItem): string | null {
   }
   if (!item.dimension) return 'Selecciona la dimensión asociada.'
   if (!item.subdimension) return 'Selecciona la subdimensión asociada.'
-  if (item.subdimension === 'Otro' && !item.subdimension_otro.trim()) {
-    return 'Especifica la subdimensión "Otro".'
-  }
   if (!item.nombre_accion.trim()) return 'Indica el nombre de la acción asociada.'
   return null
 }
@@ -42,7 +39,7 @@ export function emptyRecognitionItem(): RecognitionItem {
     cantidad: '',
     dimension: '',
     subdimension: '',
-    subdimension_otro: '',
+    codigo_pme: '',
     nombre_accion: '',
     descripcion: '',
     fecha_estimada_uso: '',

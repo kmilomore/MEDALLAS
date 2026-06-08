@@ -124,6 +124,21 @@ export default function AdminDashboard() {
     return Array.from(set).sort((a, b) => a.localeCompare(b, 'es'))
   }, [requests])
 
+  const dimensiones = useMemo(() => {
+    const set = new Set(consolidatedRows.map((row) => row.detail.dimension).filter(Boolean))
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'es'))
+  }, [consolidatedRows])
+
+  const subdimensiones = useMemo(() => {
+    const set = new Set(
+      consolidatedRows
+        .filter((row) => !filters.dimension || row.detail.dimension === filters.dimension)
+        .map((row) => row.detail.subdimension)
+        .filter(Boolean),
+    )
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'es'))
+  }, [consolidatedRows, filters.dimension])
+
   const filteredRequests = useMemo(() => {
     const search = filters.search.trim().toLowerCase()
 
@@ -295,7 +310,14 @@ export default function AdminDashboard() {
             </ChartCard>
           </section>
 
-          <FiltersPanel filters={filters} comunas={comunas} onChange={setFilters} onReset={() => setFilters(EMPTY_FILTERS)} />
+          <FiltersPanel
+            filters={filters}
+            comunas={comunas}
+            dimensiones={dimensiones}
+            subdimensiones={subdimensiones}
+            onChange={setFilters}
+            onReset={() => setFilters(EMPTY_FILTERS)}
+          />
 
           <section className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
